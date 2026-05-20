@@ -1,8 +1,8 @@
 # Codex-Claude Set
 
 Bootstrap kit for a KT-style personal AI server: Codex CLI, Claude Code,
-OpenSpec, caveman lite, Telegram control bot, Git automation, shared env files,
-and ChatGPT remote access.
+Hermes Agent, OpenSpec, caveman lite, Telegram control bot, Git automation,
+shared env files, and ChatGPT remote access.
 
 This repo is designed for one workflow: an employee opens Codex locally, pastes
 the prompt from [PROMPT.md](PROMPT.md), answers the questions, and lets Codex
@@ -13,8 +13,8 @@ finish the server setup end to end.
 - Ubuntu server user with sudo and stable SSH keepalive.
 - Codex CLI with `danger-full-access` and `approval_policy = never`.
 - Codex app-server daemon with remote control for ChatGPT mobile/web.
-- Claude Code, OpenCode, OpenClaw, OpenSpec, skills CLI, Node, Python, Docker,
-  audio/OCR/PDF/dev packages.
+- Claude Code, OpenCode, OpenClaw, Hermes Agent, OpenSpec, skills CLI, Node,
+  Python, Docker, audio/OCR/PDF/dev packages.
 - `GIT/` root with `README.md`, `DEV.md`, `AGENTS.md`, `CLAUDE.md`,
   `llm-wiki.md`, shared `.env-*` convention, and minimal folder discipline.
 - GitHub/GitLab account-level SSH key flow, not one repo deploy keys.
@@ -22,6 +22,8 @@ finish the server setup end to end.
 - Telegram bot bridge under the selected Linux user, including `/status`,
   `/getid`, `/run`, text-to-Codex, and voice/audio transcription when OpenAI is
   configured.
+- Guided post-install flow for BotFather: first create the control bot, then
+  ask whether the user wants another Telegram assistant bot.
 - Optional local speech transcription microservice shared by all bots.
 
 ## Fast Start
@@ -53,6 +55,9 @@ codex app-server daemon enable-remote-control
 
 Then the user opens the device link, enters the code, and connects from
 ChatGPT/Codex using the same ChatGPT account.
+
+6. Codex continues with [POST_INSTALL.md](POST_INSTALL.md): helps create a
+   Telegram bot in BotFather and offers to design another assistant bot.
 
 ## KT Server Access
 
@@ -92,4 +97,4 @@ After setup, switch to SSH key only.
 - OpenAI Help: [Using Codex with your ChatGPT plan](https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan)
 - OpenAI Help: [Codex CLI and Sign in with ChatGPT](https://help.openai.com/en/articles/11381614-api-codex-cli-and-sign-in-with-chatgpt)
 - OpenAI Help: [Codex CLI getting started](https://help.openai.com/en/articles/11096431)
-
+- Hermes Agent: [official install docs](https://hermes-agent.nousresearch.com/docs/getting-started/installation/)

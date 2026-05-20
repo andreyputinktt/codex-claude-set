@@ -113,6 +113,27 @@ npm install -g \
   openspec-webui \
   skills
 
+if ! command -v hermes >/dev/null 2>&1; then
+  curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh \
+    | HERMES_HOME=/root/.hermes bash -s -- --skip-setup
+fi
+
+# The upstream root installer may create a venv whose Python points into
+# /root/.local. Move that runtime to a world-readable FHS path so every Linux
+# user can execute /usr/local/bin/hermes.
+if [[ -L /usr/local/lib/hermes-agent/venv/bin/python ]]; then
+  HERMES_PY="$(readlink -f /usr/local/lib/hermes-agent/venv/bin/python || true)"
+  if [[ "$HERMES_PY" == /root/.local/share/uv/python/*/bin/python3.11 ]]; then
+    HERMES_PY_DIR="$(cd "$(dirname "$HERMES_PY")/.." && pwd)"
+    install -d -m 0755 /usr/local/lib/uv-python
+    rsync -a --delete "$HERMES_PY_DIR/" /usr/local/lib/uv-python/"$(basename "$HERMES_PY_DIR")"/
+    ln -sfn /usr/local/lib/uv-python/"$(basename "$HERMES_PY_DIR")" /usr/local/lib/uv-python/cpython-3.11-linux-x86_64-gnu
+    ln -sfn /usr/local/lib/uv-python/cpython-3.11-linux-x86_64-gnu/bin/python3.11 /usr/local/lib/hermes-agent/venv/bin/python
+    chmod -R a+rX /usr/local/lib/uv-python /usr/local/lib/hermes-agent
+    chmod +x /usr/local/bin/hermes
+  fi
+fi
+
 install -d -o "$SETUP_USER" -g "$SETUP_USER" "$USER_HOME/.ssh" "$GIT_ROOT" \
   "$USER_HOME/.codex" "$USER_HOME/.agents/skills" "$GIT_ROOT/assistants"
 chmod 700 "$USER_HOME/.ssh"
@@ -484,4 +505,3 @@ echo "1. Add this key to GitHub/GitLab account-level SSH keys."
 echo "2. Run as $SETUP_USER: codex login --device-auth"
 echo "3. After login: codex app-server daemon bootstrap && codex app-server daemon start && codex app-server daemon enable-remote-control && codex app-server daemon restart"
 echo "4. In ChatGPT/Codex, use the same ChatGPT account and connect to remote/local Codex."
-

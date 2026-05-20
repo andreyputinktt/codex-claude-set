@@ -84,9 +84,13 @@ Load order for bots:
 - Use HTML parse mode with escaped dynamic text.
 - Error messages should explain what failed without leaking secrets.
 
+After the core server install, always guide the user through BotFather unless
+they explicitly skip Telegram. First create the control bot. Then ask whether to
+create another assistant bot. Good default idea: personal diary with AI comments,
+weekly reflection, and voice input.
+
 ## Logging
 
 All services log to journald by default. Log incoming command ids, action names,
 external API status, and errors. Do not log tokens, full private message bodies,
 or private file paths.
-

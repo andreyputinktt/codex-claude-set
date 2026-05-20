@@ -10,8 +10,8 @@ Goal: make the target server work like Andrey's AI automation server:
   `approval_policy = "never"`, `sandbox_mode = "danger-full-access"`.
 - Codex app-server daemon running with remote control, so I can connect from
   ChatGPT/Codex on tablet or web.
-- Claude Code, OpenCode, OpenClaw, OpenSpec, skills CLI, Node/npm, Python,
-  Docker, git, gh, audio/OCR/PDF/dev packages installed.
+- Claude Code, OpenCode, OpenClaw, Hermes Agent, OpenSpec, skills CLI, Node/npm,
+  Python, Docker, git, gh, audio/OCR/PDF/dev packages installed.
 - `GIT/` root configured with README/DEV/AGENTS/CLAUDE/llm-wiki principles.
 - `caveman lite` is the default communication style; I should not need to ask.
 - OpenSpec is automatic for real code/behavior/deploy changes; I should not need
@@ -33,7 +33,7 @@ First ask me these questions, one compact batch:
    Timofeev. If no, ask whether to use password now or existing SSH key.
 4. Git provider choices: GitHub, GitLab personal, GitLab KT, or several.
 5. GitHub/GitLab username/group namespace.
-6. Telegram bot token and owner chat id, or "skip Telegram".
+6. Telegram bot token and owner chat id, or "help me create Telegram bot".
 7. OpenAI API key, or "skip voice transcription".
 
 Server access rules:
@@ -66,6 +66,7 @@ Implementation:
    - `codex --version`
    - `claude --version`
    - `openclaw --version`
+   - `hermes --version`
    - `openspec --version`
    - `skills --version`
    - `codex login status`
@@ -91,6 +92,38 @@ codex app-server daemon version
      account is Business/Enterprise/Edu;
    - open ChatGPT mobile/web, go to Codex, choose remote/local app connection,
      and follow the app instructions.
+9. Run the post-install Telegram onboarding:
+   - If I did not provide a Telegram bot token, help me create one through
+     BotFather.
+   - Explain exactly what to type:
+     `/newbot`, display name, then username in the format
+     `<login>_<shortPurpose>_bot`, for example `ivan_codex_bot`,
+     `maria_diary_bot`, or `pavel_gmail_bot`.
+   - Tell me to paste the token directly into this chat after BotFather gives it.
+   - Help me get my chat id with `/getid` after the bot service starts.
+   - Ask which agent the bot should call: Codex, Claude, Hermes, Cursor, or a
+     custom shell command. Default to Codex when unsure.
+10. After the control bot works, ask:
+
+```text
+Нужно ли мне создать сейчас еще какого-то тебе бота-ассистента в Telegram?
+Идея для старта: личный дневник с ИИ-комментариями, аналог mentor-bot.
+```
+
+If I say yes, talk through requirements:
+
+- purpose and short bot username suffix;
+- who can access it;
+- where memory should live;
+- text only or voice/audio too;
+- daily/weekly summaries;
+- whether it should use Codex, Claude, Hermes, Cursor, or another backend.
+
+Then start a new Codex/Claude implementation session or give me a ready prompt
+for a new session. Help me create the BotFather key for that assistant using a
+short username like `<login>_<purpose>_bot`, and ask me to paste the token into
+the chat. Create the assistant as a new microservice repo under
+`GIT/assistants/<name>` unless it is clearly just a small adapter.
 
 If ChatGPT shows "waiting for desktop app", check on the server:
 
@@ -109,5 +142,5 @@ Deliverables:
 - The user knows what was installed and how to connect.
 - The root `GIT/` docs describe current server, Git providers, Telegram, env,
   OpenSpec, caveman lite, repo creation, and deploy/autosync.
+- Telegram onboarding is complete or explicitly skipped.
 - No secret is printed in final output.
-

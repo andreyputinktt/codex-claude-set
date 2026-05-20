@@ -95,12 +95,42 @@ sudo -iu <USER> codex app-server daemon version
 For Business/Enterprise/Edu accounts, workspace admins may need to enable Codex
 Local and Remote Control permissions.
 
-## 6. Final Checks
+## 6. Telegram Onboarding
+
+Continue with [POST_INSTALL.md](POST_INSTALL.md).
+
+First bot is the control bot that talks to the selected backend: Codex by
+default, or Claude/Hermes/Cursor/custom command if the user chooses that.
+
+If the user has no Telegram bot token yet, guide them through BotFather:
+
+1. Open Telegram and start `@BotFather`.
+2. Send `/newbot`.
+3. Choose display name, for example `Ivan AI Server`.
+4. Choose username in the format `<login>_<shortPurpose>_bot`, for example
+   `ivan_codex_bot`.
+5. Paste the token into the Codex chat.
+
+Never print the token back in final output.
+
+After the control bot works, ask whether to create another Telegram assistant.
+Offer this idea:
+
+```text
+Личный дневник с ИИ-комментариями: человек пишет текстом или голосом, бот
+сохраняет записи, отражает паттерны, задает вопросы, делает недельные выводы.
+```
+
+If accepted, collect requirements and create a new repo in
+`GIT/assistants/<name>` with OpenSpec.
+
+## 7. Final Checks
 
 ```bash
 sudo -iu <USER> codex login status
 sudo -iu <USER> codex exec --skip-git-repo-check \
   --dangerously-bypass-approvals-and-sandbox "Reply exactly: CODEX_OK"
+sudo -iu <USER> hermes --version
 systemctl status codex-app-server-daemon --no-pager
 systemctl status codex-telegram-bridge --no-pager || true
 systemctl status speech-transcriber --no-pager || true
@@ -108,4 +138,3 @@ systemctl status speech-transcriber --no-pager || true
 
 If ChatGPT says "waiting for desktop app", restart daemon after login and verify
 that the ChatGPT account is the same account used for device auth.
-
