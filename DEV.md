@@ -1,0 +1,92 @@
+# Development Principles
+
+This repo packages the AI-server working style. Keep it clean, generic, and
+secret-free.
+
+## Default Style
+
+Use `caveman lite`: short, direct, no filler, still professional and precise.
+This is a default for assistant behavior and Telegram bot text. Do not make the
+user explicitly ask for it.
+
+## LLM Wiki Discipline
+
+Every real repo has:
+
+- `README.md` as the source of truth for that level;
+- `AGENTS.md` pointing Codex to `README.md` and `DEV.md`;
+- `CLAUDE.md` containing `@README.md`;
+- `DEV.md` when there are development, deploy, env, or system rules.
+
+README is an index, not a diary. Plans, meeting notes, transcripts, and history
+belong in separate files only when actually useful.
+
+Minimize folders. Create a folder only when it owns logic, data, or docs that
+need a separate README.
+
+## OpenSpec
+
+OpenSpec is automatic:
+
+- unclear feature or behavior change: explore/propose;
+- existing approved change: apply;
+- completed and verified change: archive;
+- one-off diagnostics and read-only answers: no OpenSpec.
+
+Users do not need to say "OpenSpec".
+
+## Repo Creation
+
+The agent decides:
+
+- new standalone capability, bot, API, worker, UI, scheduled job, or deployable
+  unit: create a new microservice repo;
+- change inside an existing service: use that repo;
+- cross-repo infrastructure: root `GIT/` index repo.
+
+New assistant repos default to `GIT/assistants/<name>`.
+
+## Git
+
+- Tracked code/docs/scripts/systemd move through git.
+- `.env`, tokens, runtime state, logs, private exports, local caches never enter
+  git.
+- Server may autosync generated non-secret artifacts.
+- Prefer account-level SSH keys for Git providers; deploy keys only when repo
+  boundaries require them.
+
+## Env
+
+Root shared providers:
+
+- `GIT/.env-openai`
+- `GIT/.env-anthropic`
+- `GIT/.env-gemini`
+- `GIT/.env-github`
+- `GIT/.env-gitlab`
+- `GIT/.env-telegram`
+
+Service-specific tokens live in the service repo `.env`.
+
+Load order for bots:
+
+1. root shared provider env;
+2. shared assistants env;
+3. service `.env`.
+
+## Telegram Bots
+
+- Owner allowlist by chat id.
+- `/getid` can work before allowlist; real commands cannot.
+- Text, voice, and audio are first-class inputs.
+- Telegram `.oga`/`.opus` voice files should be passed as `.ogg` to
+  transcription APIs.
+- Use HTML parse mode with escaped dynamic text.
+- Error messages should explain what failed without leaking secrets.
+
+## Logging
+
+All services log to journald by default. Log incoming command ids, action names,
+external API status, and errors. Do not log tokens, full private message bodies,
+or private file paths.
+

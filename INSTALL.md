@@ -1,0 +1,111 @@
+# Install Flow
+
+This file is for the Codex agent that performs setup. The employee normally uses
+[PROMPT.md](PROMPT.md), not this file.
+
+## 1. Choose Server
+
+Collect:
+
+- IP or hostname;
+- target Linux username;
+- whether this is KT-managed;
+- auth method.
+
+KT-managed:
+
+- generate or reuse an SSH public key locally;
+- give the Timofeev message from `README.md`;
+- wait for access.
+
+Non-KT:
+
+- password auth is OK for first bootstrap;
+- configure server keepalive;
+- generate account SSH keys during bootstrap;
+- recommend key-only SSH after verification.
+
+## 2. Copy Kit
+
+```bash
+rsync -az --exclude .git ./codex-claude-set/ <USER>@<HOST>:/tmp/codex-claude-set/
+ssh <USER>@<HOST> 'sudo bash /tmp/codex-claude-set/bootstrap.sh'
+```
+
+If only root is available:
+
+```bash
+rsync -az --exclude .git ./codex-claude-set/ root@<HOST>:/tmp/codex-claude-set/
+ssh root@<HOST> 'bash /tmp/codex-claude-set/bootstrap.sh'
+```
+
+## 3. Bootstrap Answers
+
+Use defaults unless the user gave specific values.
+
+- `SETUP_USER`: employee Linux login.
+- `GIT_ROOT`: `/home/<user>/GIT`.
+- `DEFAULT_MODEL`: current Codex model available to the account.
+- `TELEGRAM_BOT_TOKEN`: optional, never commit.
+- `TELEGRAM_OWNER_CHAT_ID`: optional, required for bot control.
+- `OPENAI_API_KEY`: optional, required for speech transcription.
+- Git provider: one or more of GitHub, GitLab personal, GitLab KT.
+
+## 4. Git Provider Access
+
+Prefer account-level SSH keys.
+
+GitHub:
+
+```bash
+gh auth login
+gh auth setup-git
+gh api user/keys -X POST \
+  -f title="ai-server <HOST> <USER>" \
+  -f key="$(cat ~/.ssh/github_account_ed25519.pub)"
+```
+
+GitLab personal or KT GitLab:
+
+- add the printed public key in GitLab user preferences;
+- use SSH remotes;
+- if API repo creation is needed, configure `glab auth login` or a scoped token.
+
+Do not add another person's public key. Verify with `ssh-keygen -lf` and provider
+UI before saving.
+
+## 5. Remote Codex
+
+After packages and config:
+
+```bash
+sudo -iu <USER> codex login --device-auth
+```
+
+Give the user the URL and one-time code. When login succeeds:
+
+```bash
+sudo -iu <USER> codex app-server daemon bootstrap
+sudo -iu <USER> codex app-server daemon start
+sudo -iu <USER> codex app-server daemon enable-remote-control
+sudo -iu <USER> codex app-server daemon restart
+sudo -iu <USER> codex app-server daemon version
+```
+
+For Business/Enterprise/Edu accounts, workspace admins may need to enable Codex
+Local and Remote Control permissions.
+
+## 6. Final Checks
+
+```bash
+sudo -iu <USER> codex login status
+sudo -iu <USER> codex exec --skip-git-repo-check \
+  --dangerously-bypass-approvals-and-sandbox "Reply exactly: CODEX_OK"
+systemctl status codex-app-server-daemon --no-pager
+systemctl status codex-telegram-bridge --no-pager || true
+systemctl status speech-transcriber --no-pager || true
+```
+
+If ChatGPT says "waiting for desktop app", restart daemon after login and verify
+that the ChatGPT account is the same account used for device auth.
+

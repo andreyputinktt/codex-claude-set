@@ -1,0 +1,95 @@
+# Codex-Claude Set
+
+Bootstrap kit for a KT-style personal AI server: Codex CLI, Claude Code,
+OpenSpec, caveman lite, Telegram control bot, Git automation, shared env files,
+and ChatGPT remote access.
+
+This repo is designed for one workflow: an employee opens Codex locally, pastes
+the prompt from [PROMPT.md](PROMPT.md), answers the questions, and lets Codex
+finish the server setup end to end.
+
+## What It Builds
+
+- Ubuntu server user with sudo and stable SSH keepalive.
+- Codex CLI with `danger-full-access` and `approval_policy = never`.
+- Codex app-server daemon with remote control for ChatGPT mobile/web.
+- Claude Code, OpenCode, OpenClaw, OpenSpec, skills CLI, Node, Python, Docker,
+  audio/OCR/PDF/dev packages.
+- `GIT/` root with `README.md`, `DEV.md`, `AGENTS.md`, `CLAUDE.md`,
+  `llm-wiki.md`, shared `.env-*` convention, and minimal folder discipline.
+- GitHub/GitLab account-level SSH key flow, not one repo deploy keys.
+- Helper for creating new microservice repos.
+- Telegram bot bridge under the selected Linux user, including `/status`,
+  `/getid`, `/run`, text-to-Codex, and voice/audio transcription when OpenAI is
+  configured.
+- Optional local speech transcription microservice shared by all bots.
+
+## Fast Start
+
+1. Open [PROMPT.md](PROMPT.md).
+2. Paste the whole prompt into Codex.
+3. Give Codex:
+   - server IP or hostname;
+   - Linux user login to create/use;
+   - auth type: password now, SSH key request, or existing SSH key;
+   - whether the server is KT-managed;
+   - Git provider choices: GitHub, personal GitLab, KT GitLab, or several;
+   - Telegram bot token and owner chat id, if Telegram control is needed;
+   - OpenAI API key, if voice/audio transcription is needed.
+4. Codex copies this repo to the server and runs:
+
+```bash
+sudo bash bootstrap.sh
+```
+
+5. Codex finishes by running:
+
+```bash
+codex login --device-auth
+codex app-server daemon bootstrap
+codex app-server daemon start
+codex app-server daemon enable-remote-control
+```
+
+Then the user opens the device link, enters the code, and connects from
+ChatGPT/Codex using the same ChatGPT account.
+
+## KT Server Access
+
+If the target is a KT-managed server, do not ask for a password first. Generate
+or reuse the employee public key and ask Timofeev to add it.
+
+Message template:
+
+```text
+Дима, привет! Нужен доступ к серверу для рабочего AI/Codex окружения.
+
+Сервер: <SERVER_IP_OR_HOST>
+Пользователь: <LINUX_LOGIN>
+Нужны права: sudo, доступ по SSH.
+Публичный ключ:
+<PUBLIC_SSH_KEY>
+
+После добавления я подключусь и сам разверну Codex/Claude/OpenSpec/Git/Telegram.
+```
+
+If the server is not KT-managed, password auth is acceptable for first setup.
+After setup, switch to SSH key only.
+
+## Security
+
+- Never commit `.env`, `.env-*`, tokens, passwords, Telegram bot tokens, OpenAI
+  API keys, private keys, runtime logs, or exported private data.
+- Git provider access uses account-level SSH keys unless a repository truly
+  requires a deploy key.
+- Telegram bot must be owner-allowlisted. `/getid` can work before allowlist;
+  normal commands must not.
+- Codex full access is intentional for this server profile. Do not use this kit
+  on shared production servers without explicit approval.
+
+## References
+
+- OpenAI Help: [Using Codex with your ChatGPT plan](https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan)
+- OpenAI Help: [Codex CLI and Sign in with ChatGPT](https://help.openai.com/en/articles/11381614-api-codex-cli-and-sign-in-with-chatgpt)
+- OpenAI Help: [Codex CLI getting started](https://help.openai.com/en/articles/11096431)
+
