@@ -11,7 +11,7 @@ finish the server setup end to end.
 ## What It Builds
 
 - Ubuntu server user with sudo and stable SSH keepalive.
-- Codex CLI with `danger-full-access` and `approval_policy = never`.
+- Codex CLI with `danger-full-access`, `approval_policy = never`, and network enabled.
 - Codex app-server daemon with remote control for ChatGPT mobile/web.
 - Claude Code, OpenCode, OpenClaw, Hermes Agent, OpenSpec, skills CLI, Node,
   Python, Docker, audio/OCR/PDF/dev packages.

@@ -7,7 +7,7 @@ but ask me for values that cannot be inferred.
 Goal: make the target server work like Andrey's AI automation server:
 
 - Codex CLI installed and configured with full access:
-  `approval_policy = "never"`, `sandbox_mode = "danger-full-access"`.
+  `approval_policy = "never"`, `sandbox_mode = "danger-full-access"`, and network enabled.
 - Codex app-server daemon running with remote control, so I can connect from
   ChatGPT/Codex on tablet or web.
 - Claude Code, OpenCode, OpenClaw, Hermes Agent, OpenSpec, skills CLI, Node/npm,

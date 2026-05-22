@@ -197,6 +197,9 @@ model_reasoning_effort = "high"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 
+[sandbox_workspace_write]
+network_access = true
+
 [projects."$GIT_ROOT"]
 trust_level = "trusted"
 EOF
