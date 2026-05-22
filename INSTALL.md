@@ -103,7 +103,29 @@ sudo -iu <USER> codex app-server daemon version
 For Business/Enterprise/Edu accounts, workspace admins may need to enable Codex
 Local and Remote Control permissions.
 
-## 6. Windows Station
+## 6. Scraper Runtime
+
+Bootstrap installs the shared browser runtime for scraper repos:
+
+- `nodejs`
+- `npm`
+- `chromium-browser`
+- `fonts-liberation`
+- `fonts-noto-core`
+- `fonts-noto-color-emoji`
+
+For each scraper repo, install project dependencies from its lockfile:
+
+```bash
+cd /home/<USER>/GIT/<SCRAPER_REPO>
+npm ci
+```
+
+If the repo has no `package-lock.json`, run `npm install` once and commit the
+generated lockfile. Prefer scraper code that reads `CHROME_PATH` or auto-detects
+Linux Chromium paths such as `/usr/bin/chromium-browser` and `/snap/bin/chromium`.
+
+## 7. Windows Station
 
 If the user works from Windows, configure Windows as a station/client after the
 server is healthy:

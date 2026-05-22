@@ -101,6 +101,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   net-tools iproute2 dnsutils openssh-client openssh-server sshpass sudo \
   python3 python3-venv python3-pip python3-dev pipx \
   nodejs npm \
+  chromium-browser fonts-liberation fonts-noto-core fonts-noto-color-emoji \
   docker.io docker-compose-v2 \
   ffmpeg sox libmagic1 poppler-utils tesseract-ocr tesseract-ocr-rus imagemagick \
   sqlite3 postgresql-client redis-tools \

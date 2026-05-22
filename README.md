@@ -16,7 +16,8 @@ finish the server setup end to end.
   `[sandbox_workspace_write] network_access = true` fallback.
 - Codex app-server daemon with remote control for ChatGPT mobile/web.
 - Claude Code, OpenCode, OpenClaw, Hermes Agent, OpenSpec, skills CLI, Node,
-  Python, Docker, audio/OCR/PDF/dev packages.
+  Python, Docker, audio/OCR/PDF/dev packages, and Chromium for browser-based
+  scrapers.
 - `GIT/` root with `README.md`, `DEV.md`, `AGENTS.md`, `CLAUDE.md`,
   `llm-wiki.md`, shared `.env-*` convention, and minimal folder discipline.
 - GitHub/GitLab account-level SSH key flow, not one repo deploy keys.
@@ -119,6 +120,17 @@ After setup, switch to SSH key only.
   normal commands must not.
 - Codex full access is intentional for this server profile. Do not use this kit
   on shared production servers without explicit approval.
+
+## Scraper Runtime
+
+Browser-based scraper repos need:
+
+- OS packages from bootstrap: `nodejs`, `npm`, `chromium-browser`,
+  `fonts-liberation`, `fonts-noto-core`, `fonts-noto-color-emoji`;
+- repo-local npm dependencies from `package-lock.json`, installed with
+  `npm ci` when the lockfile exists, otherwise `npm install`;
+- scraper code should prefer `CHROME_PATH` when set and otherwise auto-detect
+  `google-chrome-stable`, `google-chrome`, `chromium-browser`, or `chromium`.
 
 ## References
 
