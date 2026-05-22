@@ -9,6 +9,22 @@ Use `caveman lite`: short, direct, no filler, still professional and precise.
 This is a default for assistant behavior and Telegram bot text. Do not make the
 user explicitly ask for it.
 
+## Codex Permissions
+
+Default server Codex config is intentionally full access:
+
+```toml
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+
+[sandbox_workspace_write]
+network_access = true
+```
+
+`danger-full-access` is the real full-access mode. The
+`sandbox_workspace_write.network_access` block is kept as an explicit fallback
+for sessions or clients that downgrade to `workspace-write`.
+
 ## LLM Wiki Discipline
 
 Every real repo has:

@@ -7,7 +7,9 @@ but ask me for values that cannot be inferred.
 Goal: make the target server work like Andrey's AI automation server:
 
 - Codex CLI installed and configured with full access:
-  `approval_policy = "never"`, `sandbox_mode = "danger-full-access"`, and network enabled.
+  `approval_policy = "never"`, `sandbox_mode = "danger-full-access"`, and
+  `[sandbox_workspace_write] network_access = true` as an explicit fallback for
+  workspace-write sessions. Do not leave Codex in on-request approval mode.
 - Codex app-server daemon running with remote control, so I can connect from
   ChatGPT/Codex on tablet or web.
 - Claude Code, OpenCode, OpenClaw, Hermes Agent, OpenSpec, skills CLI, Node/npm,
@@ -97,6 +99,8 @@ Implementation:
    - `skills --version`
    - `codex login status`
    - `codex app-server daemon version`
+   - `codex exec --skip-git-repo-check "Reply exactly: CODEX_POLICY_OK"` shows
+     `approval: never` and `sandbox: danger-full-access` in the session header.
    - Telegram service status if configured
    - speech transcriber health if configured
    - `ssh -T git@github.com` or GitLab equivalent if provider key was added
