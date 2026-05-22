@@ -5,10 +5,16 @@ This file is for the Codex agent that performs setup. The employee normally uses
 
 ## 1. Choose Server
 
+If this is a new Ubuntu server, first verify SSH stability. Ubuntu defaults can
+drop long SSH sessions, so check or configure keepalive before package install,
+copying large files, or running the bootstrap script. Keep the current SSH
+session open until a second login works.
+
 Collect:
 
 - IP or hostname;
-- target Linux username;
+- OpenAI or Claude login/email to derive a personal default Linux username;
+- target Linux username, if explicitly different from that default;
 - whether this is KT-managed;
 - auth method.
 
@@ -43,7 +49,9 @@ ssh root@<HOST> 'bash /tmp/codex-claude-set/bootstrap.sh'
 
 Use defaults unless the user gave specific values.
 
-- `SETUP_USER`: employee Linux login.
+- `SETUP_USER`: employee Linux login. Default to a sanitized OpenAI or Claude
+  login/email, for example `ivan.petrov@example.com` -> `ivan-petrov`. Do not
+  use generic names such as `ai`.
 - `GIT_ROOT`: `/home/<user>/GIT`.
 - `DEFAULT_MODEL`: current Codex model available to the account.
 - `TELEGRAM_BOT_TOKEN`: optional, never commit.
@@ -95,7 +103,32 @@ sudo -iu <USER> codex app-server daemon version
 For Business/Enterprise/Edu accounts, workspace admins may need to enable Codex
 Local and Remote Control permissions.
 
-## 6. Telegram Onboarding
+## 6. Windows Station
+
+If the user works from Windows, configure Windows as a station/client after the
+server is healthy:
+
+```powershell
+.\windows\bootstrap.ps1 -ServerHost <HOST> -ServerUser <USER>
+.\windows\verify.ps1 -HostAlias ai-server
+```
+
+Windows must forward work to the Ubuntu server by default. Local Windows commands
+are for station setup, SSH checks, editor setup, and thin wrappers only. Coding,
+git provider setup, env files, services, daemon work, repo creation, Telegram,
+and OpenSpec live on the server unless the user explicitly requests local
+Windows execution.
+
+Expected daily commands:
+
+```powershell
+ai-shell
+codex-server exec "Reply exactly: CODEX_OK"
+```
+
+For Cursor/VS Code, use Remote SSH into `ai-server:~/GIT`.
+
+## 7. Telegram Onboarding
 
 Continue with [POST_INSTALL.md](POST_INSTALL.md).
 
@@ -124,7 +157,7 @@ Offer this idea:
 If accepted, collect requirements and create a new repo in
 `GIT/assistants/<name>` with OpenSpec.
 
-## 7. Final Checks
+## 8. Final Checks
 
 ```bash
 sudo -iu <USER> codex login status

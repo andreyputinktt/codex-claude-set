@@ -28,16 +28,24 @@ Goal: make the target server work like Andrey's AI automation server:
 First ask me these questions, one compact batch:
 
 1. Server IP/hostname.
-2. Linux username to create/use.
-3. Is this server KT-managed? If yes, prepare SSH key access request for
+2. OpenAI or Claude login/email, used to derive a personal default Linux
+   username.
+3. Linux username to create/use, if different from that personal default. Do not
+   use generic names such as `ai`.
+4. Is this server KT-managed? If yes, prepare SSH key access request for
    Timofeev. If no, ask whether to use password now or existing SSH key.
-4. Git provider choices: GitHub, GitLab personal, GitLab KT, or several.
-5. GitHub/GitLab username/group namespace.
-6. Telegram bot token and owner chat id, or "help me create Telegram bot".
-7. OpenAI API key, or "skip voice transcription".
+5. Git provider choices: GitHub, GitLab personal, GitLab KT, or several.
+6. GitHub/GitLab username/group namespace.
+7. Whether this computer is Windows and should be configured as a station.
+8. Telegram bot token and owner chat id, or "help me create Telegram bot".
+9. OpenAI API key, or "skip voice transcription".
 
 Server access rules:
 
+- If this is a new Ubuntu server, check SSH stability before the main setup.
+  Ubuntu defaults often drop long SSH sessions, so verify or configure server
+  keepalive first and keep the current session open until a second SSH login
+  works.
 - If KT-managed, do not require password first. Generate/reuse an SSH public key
   and give me this SMS for Timofeev:
 
@@ -56,13 +64,31 @@ Server access rules:
 - If not KT-managed, password auth is acceptable for the first setup. Configure
   SSH keepalive and later recommend switching to key-only auth.
 
+User naming rules:
+
+- If the Linux username is not explicitly given, derive it from the OpenAI or
+  Claude login/email. Example: `ivan.petrov@example.com` becomes `ivan-petrov`.
+- Never default to generic names such as `ai`. The server user should make clear
+  which human owns the environment.
+
+Windows station rules:
+
+- If the user works from Windows, treat Windows as a station/client by default.
+- Do not create project state, secrets, repos, services, or long-running
+  processes on Windows unless explicitly requested.
+- Use SSH into the configured Ubuntu AI server and work under `~/GIT`.
+- Local Windows commands are for station setup, SSH verification, editor setup,
+  and thin wrappers only.
+
 Implementation:
 
-1. Clone or create this setup repo locally as `codex-claude-set`.
-2. Copy it to the server under `/tmp/codex-claude-set`.
-3. Run `sudo bash /tmp/codex-claude-set/bootstrap.sh`.
-4. Answer installer prompts using the values I gave you.
-5. Verify:
+1. For a new Ubuntu server, verify SSH keepalive/stability before copying or
+   running the installer.
+2. Clone or create this setup repo locally as `codex-claude-set`.
+3. Copy it to the server under `/tmp/codex-claude-set`.
+4. Run `sudo bash /tmp/codex-claude-set/bootstrap.sh`.
+5. Answer installer prompts using the values I gave you.
+6. Verify:
    - `codex --version`
    - `claude --version`
    - `openclaw --version`
@@ -74,9 +100,12 @@ Implementation:
    - Telegram service status if configured
    - speech transcriber health if configured
    - `ssh -T git@github.com` or GitLab equivalent if provider key was added
-6. Run `codex login --device-auth`, give me the URL and code, and wait while I
+7. If the user works from Windows, configure it with `windows/bootstrap.ps1`,
+   verify `ai-server`, and explain `ai-shell`, `codex-server`, and Cursor/VS
+   Code Remote SSH into `ai-server:~/GIT`.
+8. Run `codex login --device-auth`, give me the URL and code, and wait while I
    complete login.
-7. After login, run:
+9. After login, run:
 
 ```bash
 codex app-server daemon bootstrap
@@ -86,13 +115,13 @@ codex app-server daemon restart
 codex app-server daemon version
 ```
 
-8. Help me open ChatGPT/Codex remote access:
+10. Help me open ChatGPT/Codex remote access:
    - same ChatGPT account as device login;
    - workspace/admin setting must allow Codex Local and Remote Control when the
      account is Business/Enterprise/Edu;
    - open ChatGPT mobile/web, go to Codex, choose remote/local app connection,
      and follow the app instructions.
-9. Run the post-install Telegram onboarding:
+11. Run the post-install Telegram onboarding:
    - If I did not provide a Telegram bot token, help me create one through
      BotFather.
    - Explain exactly what to type:
@@ -103,7 +132,7 @@ codex app-server daemon version
    - Help me get my chat id with `/getid` after the bot service starts.
    - Ask which agent the bot should call: Codex, Claude, Hermes, Cursor, or a
      custom shell command. Default to Codex when unsure.
-10. After the control bot works, ask:
+12. After the control bot works, ask:
 
 ```text
 Нужно ли мне создать сейчас еще какого-то тебе бота-ассистента в Telegram?
@@ -139,6 +168,7 @@ Restart the daemon after successful login.
 Deliverables:
 
 - Server is configured.
+- If requested, Windows station is configured as a thin client to the server.
 - The user knows what was installed and how to connect.
 - The root `GIT/` docs describe current server, Git providers, Telegram, env,
   OpenSpec, caveman lite, repo creation, and deploy/autosync.

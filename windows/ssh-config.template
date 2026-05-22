@@ -1,0 +1,8 @@
+Host ai-server
+  HostName <SERVER_IP_OR_HOST>
+  User <LINUX_USER>
+  IdentityFile ~/.ssh/ai_server_ed25519
+  IdentitiesOnly yes
+  ServerAliveInterval 30
+  ServerAliveCountMax 120
+  TCPKeepAlive yes

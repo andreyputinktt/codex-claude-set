@@ -33,6 +33,21 @@ ask_secret() {
   printf -v "$name" "%s" "$value"
 }
 
+sanitize_linux_user() {
+  local raw="$1"
+  local base="${raw%@*}"
+  base="$(printf "%s" "$base" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed -E 's/[^a-z0-9_-]+/-/g; s/^-+//; s/-+$//')"
+  if [[ -z "$base" ]]; then
+    base="codexuser"
+  fi
+  if [[ ! "$base" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
+    base="u-$base"
+  fi
+  printf "%s" "${base:0:30}"
+}
+
 as_user() {
   sudo -H -u "$SETUP_USER" bash -lc "$*"
 }
@@ -51,7 +66,11 @@ need_root
 
 DEFAULT_USER="${SUDO_USER:-}"
 [[ "$DEFAULT_USER" == "root" ]] && DEFAULT_USER=""
-ask SETUP_USER "Linux user to create/use" "${DEFAULT_USER:-ai}"
+ask LOGIN_HINT "OpenAI/Claude login or email for default Linux username" ""
+if [[ -n "$LOGIN_HINT" ]]; then
+  DEFAULT_USER="$(sanitize_linux_user "$LOGIN_HINT")"
+fi
+ask SETUP_USER "Linux user to create/use" "${DEFAULT_USER:-codexuser}"
 ask GIT_NAMESPACE "GitHub/GitLab namespace or username" "$SETUP_USER"
 ask SERVER_LABEL "Server label or hostname for SSH key titles" "$(hostname -f 2>/dev/null || hostname)"
 ask DEFAULT_MODEL "Default Codex model" "gpt-5.5"
@@ -197,6 +216,9 @@ then the target repo README.
 - OpenSpec is automatic for behavior/code/deploy changes.
 - Caveman lite is the default response style.
 - Secrets stay in ignored \`.env\` files.
+- Windows workstations are clients only; run code, git, env, services, and
+  long-running tasks on this Ubuntu server unless local Windows work is
+  explicitly requested.
 
 ## Repos
 
@@ -238,6 +260,13 @@ $(cat "$KEY.pub")
 New standalone service, bot, API, job, or UI means new repo. Changes to an
 existing service happen in that repo. Root \`GIT/\` is only an index and shared
 infrastructure.
+
+## Windows Station
+
+If the user connects from Windows, treat Windows as a station/client. Use SSH or
+editor Remote SSH into this server and work under \`$GIT_ROOT\`. Do not create
+project state, secrets, repos, services, or long-running processes on Windows
+unless explicitly requested.
 
 ## OpenSpec
 

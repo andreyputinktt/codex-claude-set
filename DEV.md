@@ -55,6 +55,16 @@ New assistant repos default to `GIT/assistants/<name>`.
 - Prefer account-level SSH keys for Git providers; deploy keys only when repo
   boundaries require them.
 
+## Windows Station
+
+- Windows is a station/client by default, not the execution host.
+- Keep repos, secrets, `.env-*`, services, daemon state, Telegram, OpenSpec, and
+  long-running work on the Ubuntu server.
+- Local Windows commands are for station setup, SSH checks, editor setup, and
+  thin wrappers only.
+- If the user does not explicitly ask for local Windows execution, use SSH or
+  editor Remote SSH into the server and work under `~/GIT`.
+
 ## Env
 
 Root shared providers:
