@@ -25,6 +25,37 @@ network_access = true
 `sandbox_workspace_write.network_access` block is kept as an explicit fallback
 for sessions or clients that downgrade to `workspace-write`.
 
+## Codex Daemon And Run Stability
+
+After ChatGPT device login, Codex remote control must be durable:
+
+- run `codex app-server daemon bootstrap --remote-control`;
+- run `codex app-server daemon restart`;
+- enable `codex-app-server-daemon.service`;
+- enable `codex-app-server-healthcheck.timer`;
+- verify with `ai-codex-health`.
+
+Keep the global `@openai/codex` npm package current enough to match the managed
+app-server version. Version skew is not usually the root cause of stopped runs,
+but matching versions removes one avoidable variable during diagnosis.
+
+When investigating "codex run stopped", first check resources and daemon health,
+then inspect CLI/session logs through summaries. Never dump raw
+`~/.codex/sessions/**/*.jsonl`, screenshots, base64, or broad recursive `rg`
+results into the agent context. A stopped run can be caused by huge tool outputs
+ballooning the next turn to 150k+ input tokens inside a 258k context window.
+Prefer:
+
+```bash
+ai-codex-health
+jq -r 'select(.type=="event_msg") | [.timestamp, .payload.type] | @tsv' \
+  ~/.codex/sessions/YYYY/MM/DD/*.jsonl | tail -n 200
+```
+
+If a session has no final `task_complete` and token counts are already very
+large, assume context/tool-output pressure until daemon, resource, auth, and
+rate-limit checks show otherwise.
+
 ## LLM Wiki Discipline
 
 Every real repo has:

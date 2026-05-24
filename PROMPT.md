@@ -112,11 +112,14 @@ Implementation:
 9. After login, run:
 
 ```bash
-codex app-server daemon bootstrap
+codex app-server daemon bootstrap --remote-control
 codex app-server daemon start
 codex app-server daemon enable-remote-control
 codex app-server daemon restart
 codex app-server daemon version
+sudo systemctl enable --now codex-app-server-daemon.service
+sudo systemctl enable --now codex-app-server-healthcheck.timer
+ai-codex-health
 ```
 
 10. Help me open ChatGPT/Codex remote access:
@@ -163,11 +166,18 @@ If ChatGPT shows "waiting for desktop app", check on the server:
 ```bash
 codex login status
 codex app-server daemon version
+ai-codex-health
 pgrep -a -u "$USER" -f "codex|app-server"
 ss -xlpn | grep app-server
 ```
 
 Restart the daemon after successful login.
+
+If I report "codex run stopped", read Codex CLI/session logs through summaries
+first. Do not dump raw `~/.codex/sessions/**/*.jsonl`, screenshots, base64, or
+broad recursive `rg` output into the chat; huge tool outputs can inflate the
+next turn and cause another stopped run. Use `ai-codex-health` and short `jq`
+summaries of `event_msg` and `token_count`.
 
 Deliverables:
 

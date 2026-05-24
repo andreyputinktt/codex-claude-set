@@ -93,15 +93,25 @@ sudo -iu <USER> codex login --device-auth
 Give the user the URL and one-time code. When login succeeds:
 
 ```bash
-sudo -iu <USER> codex app-server daemon bootstrap
+sudo -iu <USER> codex app-server daemon bootstrap --remote-control
 sudo -iu <USER> codex app-server daemon start
 sudo -iu <USER> codex app-server daemon enable-remote-control
 sudo -iu <USER> codex app-server daemon restart
 sudo -iu <USER> codex app-server daemon version
+sudo systemctl enable --now codex-app-server-daemon.service
+sudo systemctl enable --now codex-app-server-healthcheck.timer
+sudo -iu <USER> ai-codex-health
 ```
 
 For Business/Enterprise/Edu accounts, workspace admins may need to enable Codex
 Local and Remote Control permissions.
+
+If the user reports "codex run stopped", first run `ai-codex-health`. Then read
+session logs only through filters such as `jq` summaries of `event_msg` and
+`token_count`. Do not run broad raw `rg`, `cat`, or `tail` over
+`~/.codex/sessions/**/*.jsonl`: session files can contain huge tool outputs,
+screenshots, base64, and prior instructions, and dumping them into the agent
+context can itself trigger another stopped run.
 
 ## 6. Scraper Runtime
 
@@ -150,7 +160,7 @@ codex-server exec "Reply exactly: CODEX_OK"
 
 For Cursor/VS Code, use Remote SSH into `ai-server:~/GIT`.
 
-## 7. Telegram Onboarding
+## 8. Telegram Onboarding
 
 Continue with [POST_INSTALL.md](POST_INSTALL.md).
 
@@ -179,7 +189,7 @@ Offer this idea:
 If accepted, collect requirements and create a new repo in
 `GIT/assistants/<name>` with OpenSpec.
 
-## 8. Final Checks
+## 9. Final Checks
 
 ```bash
 sudo -iu <USER> codex login status
@@ -187,6 +197,8 @@ sudo -iu <USER> codex exec --skip-git-repo-check \
   --dangerously-bypass-approvals-and-sandbox "Reply exactly: CODEX_OK"
 sudo -iu <USER> hermes --version
 systemctl status codex-app-server-daemon --no-pager
+systemctl status codex-app-server-healthcheck.timer --no-pager
+sudo -iu <USER> ai-codex-health
 systemctl status codex-telegram-bridge --no-pager || true
 systemctl status speech-transcriber --no-pager || true
 ```

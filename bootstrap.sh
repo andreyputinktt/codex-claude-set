@@ -277,6 +277,22 @@ unless explicitly requested.
 Use OpenSpec automatically for behavior, code, deploy, integration, schema, bot,
 prompt, or workflow changes.
 
+## Codex Stability
+
+Passwordless sudo is expected for this server profile. Do not repeatedly ask the
+user whether sudo is available; verify with \`sudo -n true\` when needed.
+
+Codex is configured for long SSH-driven work through the app-server daemon:
+
+- systemd unit: \`codex-app-server-daemon.service\`;
+- health timer: \`codex-app-server-healthcheck.timer\`;
+- quick check: \`ai-codex-health\`.
+
+When investigating \`codex run stopped\`, do not dump raw
+\`~/.codex/sessions/**/*.jsonl\`, screenshots, base64, or broad \`rg\` output
+into the agent context. Parse and summarize first. Large raw tool outputs can
+inflate a turn past 150k input tokens and cause another stopped run.
+
 ## Telegram
 
 Bots must be owner-allowlisted. \`/getid\` may work before allowlist. Text,
@@ -407,6 +423,52 @@ done
 EOF
 chmod 755 /usr/local/bin/ai-git-autosync
 
+cat > /usr/local/bin/ai-codex-health <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "== codex versions =="
+command -v codex || true
+codex --version || true
+codex login status || true
+codex app-server daemon version || true
+
+echo
+echo "== processes =="
+pgrep -a -u "$USER" -f "codex|app-server" || true
+
+echo
+echo "== systemd =="
+systemctl status codex-app-server-daemon --no-pager || true
+systemctl status codex-app-server-healthcheck.timer --no-pager || true
+
+echo
+echo "== app-server logs =="
+tail -n 80 "$HOME/.codex/app-server-control/app-server.log" 2>/dev/null || true
+tail -n 80 "$HOME/.codex/app-server-daemon/app-server.stderr.log" 2>/dev/null || true
+tail -n 80 "$HOME/.codex/app-server-daemon/app-server-updater.stderr.log" 2>/dev/null || true
+
+echo
+echo "== latest session token counts =="
+latest="$(find "$HOME/.codex/sessions" -type f -name '*.jsonl' 2>/dev/null | sort | tail -n 1 || true)"
+if [[ -n "$latest" ]]; then
+  echo "$latest"
+  jq -r '
+    select(.type=="event_msg" and .payload.type=="token_count")
+    | [
+        .timestamp,
+        (.payload.info.last_token_usage.input_tokens // ""),
+        (.payload.info.total_token_usage.total_tokens // ""),
+        (.payload.info.model_context_window // ""),
+        (.payload.rate_limits.primary.used_percent // ""),
+        (.payload.rate_limits.secondary.used_percent // "")
+      ]
+    | @tsv
+  ' "$latest" 2>/dev/null | tail -n 20 || true
+fi
+EOF
+chmod 755 /usr/local/bin/ai-codex-health
+
 cat > /etc/systemd/system/ai-git-autosync.service <<EOF
 [Unit]
 Description=AI git autosync for $SETUP_USER
@@ -498,23 +560,64 @@ fi
 
 cat > /etc/systemd/system/codex-app-server-daemon.service <<EOF
 [Unit]
-Description=Start Codex app-server daemon for $SETUP_USER
+Description=Ensure Codex app-server daemon for $SETUP_USER
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
 User=$SETUP_USER
+Group=$SETUP_USER
 Environment=HOME=$USER_HOME
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=$GIT_ROOT
+ExecStart=/usr/local/bin/codex app-server daemon bootstrap --remote-control
 ExecStart=/usr/local/bin/codex app-server daemon start
 ExecStart=/usr/local/bin/codex app-server daemon enable-remote-control
+ExecStart=/usr/local/bin/codex app-server daemon version
+ExecStop=/usr/local/bin/codex app-server daemon stop
 RemainAfterExit=yes
+TimeoutStartSec=90
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target
 EOF
+cat > /etc/systemd/system/codex-app-server-healthcheck.service <<EOF
+[Unit]
+Description=Healthcheck Codex app-server daemon for $SETUP_USER
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=$SETUP_USER
+Group=$SETUP_USER
+Environment=HOME=$USER_HOME
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=$GIT_ROOT
+ExecStart=/usr/local/bin/codex app-server daemon start
+ExecStart=/usr/local/bin/codex app-server daemon enable-remote-control
+ExecStart=/usr/local/bin/codex app-server daemon version
+TimeoutStartSec=60
+EOF
+cat > /etc/systemd/system/codex-app-server-healthcheck.timer <<'EOF'
+[Unit]
+Description=Run Codex app-server daemon healthcheck periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Persistent=true
+Unit=codex-app-server-healthcheck.service
+
+[Install]
+WantedBy=timers.target
+EOF
 systemctl daemon-reload
-systemctl enable codex-app-server-daemon.service >/dev/null 2>&1 || true
+systemctl enable --now codex-app-server-daemon.service >/dev/null 2>&1 || true
+systemctl enable --now codex-app-server-healthcheck.timer >/dev/null 2>&1 || true
 
 echo
 echo "=== Public SSH key for Git providers ==="
@@ -536,5 +639,5 @@ echo
 echo "=== Next ==="
 echo "1. Add this key to GitHub/GitLab account-level SSH keys."
 echo "2. Run as $SETUP_USER: codex login --device-auth"
-echo "3. After login: codex app-server daemon bootstrap && codex app-server daemon start && codex app-server daemon enable-remote-control && codex app-server daemon restart"
+echo "3. After login: codex app-server daemon bootstrap --remote-control && codex app-server daemon restart && ai-codex-health"
 echo "4. In ChatGPT/Codex, use the same ChatGPT account and connect to remote/local Codex."

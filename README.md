@@ -14,7 +14,8 @@ finish the server setup end to end.
 - Codex CLI with `sandbox_mode = "danger-full-access"`,
   `approval_policy = "never"`, and explicit
   `[sandbox_workspace_write] network_access = true` fallback.
-- Codex app-server daemon with remote control for ChatGPT mobile/web.
+- Codex app-server daemon with remote control for ChatGPT mobile/web, plus a
+  systemd unit, periodic healthcheck timer, and `ai-codex-health` diagnostics.
 - Claude Code, OpenCode, OpenClaw, Hermes Agent, OpenSpec, skills CLI, Node,
   Python, Docker, audio/OCR/PDF/dev packages, and Chromium for browser-based
   scrapers.
