@@ -176,8 +176,17 @@ Restart the daemon after successful login.
 If I report "codex run stopped", read Codex CLI/session logs through summaries
 first. Do not dump raw `~/.codex/sessions/**/*.jsonl`, screenshots, base64, or
 broad recursive `rg` output into the chat; huge tool outputs can inflate the
-next turn and cause another stopped run. Use `ai-codex-health` and short `jq`
-summaries of `event_msg` and `token_count`.
+next turn and cause another stopped run. Use `ai-codex-health`,
+`ai-codex-session-summary`, and short `jq` summaries of `event_msg` and
+`token_count`.
+
+Use caveman for token discipline:
+
+- default answers stay `caveman lite`;
+- use `cavecrew` for broad search/review when subagent output would otherwise
+  bloat main context;
+- use `caveman-compress` only for long prose memory/docs files, not code,
+  configs, env, logs, or OpenSpec artifacts by default.
 
 Deliverables:
 

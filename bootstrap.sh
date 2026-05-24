@@ -240,6 +240,20 @@ Git root: $GIT_ROOT
 
 Default to caveman lite: short, clear, no filler.
 
+## Caveman And Context Economy
+
+Caveman is an agent/Claude skill set, not a required shell command. Do not assume
+\`caveman\` exists in PATH.
+
+- Normal replies: \`caveman lite\`.
+- Broad search / locate / review: prefer \`cavecrew\` so subagent output is
+  compressed before it enters main context.
+- Commit/review text: use \`caveman-commit\` / \`caveman-review\` when the task
+  matches.
+- Long prose memory/docs files: use \`caveman-compress\` only when explicitly
+  useful. Do not compress code, configs, env, logs, or OpenSpec artifacts by
+  default.
+
 ## Env
 
 Shared providers live at root as ignored files:
@@ -292,6 +306,8 @@ When investigating \`codex run stopped\`, do not dump raw
 \`~/.codex/sessions/**/*.jsonl\`, screenshots, base64, or broad \`rg\` output
 into the agent context. Parse and summarize first. Large raw tool outputs can
 inflate a turn past 150k input tokens and cause another stopped run.
+
+Use \`ai-codex-session-summary\` or bounded \`jq\` filters for session logs.
 
 ## Telegram
 
@@ -468,6 +484,42 @@ if [[ -n "$latest" ]]; then
 fi
 EOF
 chmod 755 /usr/local/bin/ai-codex-health
+
+cat > /usr/local/bin/ai-codex-session-summary <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "$#" -gt 0 ]]; then
+  files=("$@")
+else
+  mapfile -t files < <(find "$HOME/.codex/sessions" -type f -name '*.jsonl' -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 5 | cut -d' ' -f2-)
+fi
+
+if [[ "${#files[@]}" -eq 0 ]]; then
+  echo "No Codex session files found."
+  exit 0
+fi
+
+for file in "${files[@]}"; do
+  [[ -f "$file" ]] || continue
+  echo "== $file =="
+  jq -r '
+    select(.type=="event_msg")
+    | [
+        .timestamp,
+        (.payload.type // ""),
+        (.payload.info.last_token_usage.input_tokens // ""),
+        (.payload.info.total_token_usage.total_tokens // ""),
+        (.payload.info.model_context_window // ""),
+        (.payload.rate_limits.primary.used_percent // ""),
+        (.payload.rate_limits.secondary.used_percent // ""),
+        ((.payload.message // "") | gsub("[\r\n]+"; " ") | .[0:220])
+      ]
+    | @tsv
+  ' "$file" 2>/dev/null | tail -n 80 || true
+done
+EOF
+chmod 755 /usr/local/bin/ai-codex-session-summary
 
 cat > /etc/systemd/system/ai-git-autosync.service <<EOF
 [Unit]

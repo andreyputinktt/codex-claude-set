@@ -9,6 +9,21 @@ Use `caveman lite`: short, direct, no filler, still professional and precise.
 This is a default for assistant behavior and Telegram bot text. Do not make the
 user explicitly ask for it.
 
+## Caveman And Token Economy
+
+Caveman is installed as agent/Claude skills and hooks, not as a required shell
+command. Do not assume `caveman` exists in PATH.
+
+Use:
+
+- `caveman lite` for normal answers and Telegram bot text;
+- `cavecrew` for broad investigation, small scoped edits, and diff reviews when
+  subagent output would otherwise bloat main context;
+- `caveman-commit` and `caveman-review` for terse commit/review text when the
+  task matches;
+- `caveman-compress` only for long prose memory/docs files. Do not compress code,
+  configs, env files, logs, or OpenSpec artifacts unless explicitly requested.
+
 ## Codex Permissions
 
 Default server Codex config is intentionally full access:
@@ -48,8 +63,8 @@ Prefer:
 
 ```bash
 ai-codex-health
-jq -r 'select(.type=="event_msg") | [.timestamp, .payload.type] | @tsv' \
-  ~/.codex/sessions/YYYY/MM/DD/*.jsonl | tail -n 200
+ai-codex-session-summary
+ai-codex-session-summary ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl
 ```
 
 If a session has no final `task_complete` and token counts are already very
