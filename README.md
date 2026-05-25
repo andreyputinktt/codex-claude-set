@@ -8,9 +8,9 @@ This repo is designed for one workflow: an employee opens Codex locally, pastes
 the prompt from [PROMPT.md](PROMPT.md), answers the questions, and lets Codex
 finish the server setup end to end.
 
-For a personal mentor setup like Andrey's mentor-bot/about profile/people
-system, use [PAVEL_MENTOR_BOT_PROMPT.md](PAVEL_MENTOR_BOT_PROMPT.md). It keeps
-the same operating principles while creating a fresh private profile for Pavel.
+Additional reusable scenarios live in [recipes/](recipes/), including
+[recipes/mentor-bot.md](recipes/mentor-bot.md) for a personal mentor bot with
+profile, people records, diaries, voice transcription, and Telegram control.
 
 ## What It Builds
 
