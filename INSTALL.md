@@ -59,6 +59,11 @@ Use defaults unless the user gave specific values.
 - `OPENAI_API_KEY`: optional, required for speech transcription.
 - Git provider: one or more of GitHub, GitLab personal, GitLab KT.
 
+When storing tokens after bootstrap, use `scripts/set-secret.sh` on macOS/Linux
+or `windows/set-secret.ps1` on Windows. If a token has a simple verification
+command, pass it as `--verify-command` / `-VerifyCommand`; omit it only when no
+simple check exists.
+
 ## 4. Git Provider Access
 
 Prefer account-level SSH keys.
@@ -178,6 +183,12 @@ If the user has no Telegram bot token yet, guide them through BotFather:
 
 Never print the token back in final output.
 
+The control bot supports persistent Codex dialogs:
+
+- `/new` creates a new dialog.
+- `/chats` shows recent dialogs as inline buttons.
+- Pressing a dialog button switches the active dialog.
+
 After the control bot works, ask whether to create another Telegram assistant.
 Offer this idea:
 
@@ -205,3 +216,26 @@ systemctl status speech-transcriber --no-pager || true
 
 If ChatGPT says "waiting for desktop app", restart daemon after login and verify
 that the ChatGPT account is the same account used for device auth.
+
+## 10. First-Run User Onboarding
+
+After bootstrap, run as the target Linux user:
+
+```bash
+ai-first-run
+```
+
+The script asks for the root `GIT/` folder, offers to create the llm-wiki folder
+and README skeleton, stores default server/login/mail notes, collects
+OpenAI/Telegram/Anthropic/Gemini/GitLab secrets through `ai-set-secret`, and
+prints GitHub/GitLab SSH key instructions.
+
+## 11. Ongoing Rule Refresh
+
+For employee environments deployed from this kit, add a standing maintenance
+rule: at least monthly, and before large setup or infrastructure work, check the
+upstream `codex-claude-set` repository for updated `README.md`, `DEV.md`,
+`PROMPT.md`, `INSTALL.md`, and relevant recipes. Apply relevant rule changes to
+the local server `GIT/` docs.
+
+Skip this reminder for the upstream author while authoring these rules.

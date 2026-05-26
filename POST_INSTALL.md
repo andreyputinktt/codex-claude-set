@@ -43,6 +43,10 @@ pavel_ai_server_bot
 8. Ask the user to send `/getid` to the bot.
 9. Save the returned chat id as the owner id and restart the service.
 10. Verify `/status`.
+11. Verify dialog controls:
+    - `/new` creates a fresh Codex dialog.
+    - `/chats` shows recent dialogs as inline buttons.
+    - Selecting a button switches the active dialog.
 
 Backend choice question:
 
@@ -52,6 +56,11 @@ OpenClaw или отдельная shell-команда? Если не увер�
 ```
 
 Default: Codex with full access in `GIT/`.
+
+The control bot keeps bounded recent dialog context and stores dialog state in
+`TELEGRAM_DIALOG_STATE` (default `/var/lib/codex-telegram-bridge/dialogs.json`).
+`TELEGRAM_DIALOG_BUTTON_LIMIT` controls how many recent chats are shown as
+buttons; default is `90`.
 
 ## 2. Offer Another Assistant Bot
 
@@ -114,4 +123,3 @@ Bot username suggestion:
 ```text
 <login>_diary_bot
 ```
-

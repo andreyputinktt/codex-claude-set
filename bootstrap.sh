@@ -183,6 +183,12 @@ Host gitlab.com
   IdentityFile $KEY
   IdentitiesOnly yes
 
+Host gitlab.kt-team.de
+  HostName gitlab.kt-team.de
+  User git
+  IdentityFile $KEY
+  IdentitiesOnly yes
+
 Host gitlab.kt.team
   HostName gitlab.kt.team
   User git
@@ -266,6 +272,13 @@ Shared providers live at root as ignored files:
 - \`.env-telegram\`
 
 Service-specific secrets live in that service repo \`.env\`.
+
+## Upstream Instruction Refresh
+
+This environment was deployed from \`codex-claude-set\`. If the user is not the
+upstream author, periodically check the upstream repo for updated rules and
+refresh local \`GIT/\` instructions. Do this at least monthly and before large
+setup, infrastructure, or agent-policy work.
 
 ## Git
 
@@ -369,6 +382,9 @@ fi
 if [[ ! -d "$GIT_ROOT/.git" ]]; then
   as_user "cd '$GIT_ROOT' && git init && git add README.md DEV.md llm-wiki.md AGENTS.md CLAUDE.md .gitignore && git commit -m 'Initialize AI server index' || true"
 fi
+
+install -m 0755 "$SCRIPT_DIR/scripts/set-secret.sh" /usr/local/bin/ai-set-secret
+install -m 0755 "$SCRIPT_DIR/scripts/first-run.sh" /usr/local/bin/ai-first-run
 
 cat > /usr/local/bin/ai-new-repo <<'EOF'
 #!/usr/bin/env bash
@@ -549,6 +565,7 @@ systemctl enable --now ai-git-autosync.timer >/dev/null 2>&1 || true
 
 if [[ "$TELEGRAM_MODE" =~ ^[Yy] && -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_OWNER_CHAT_ID" ]]; then
   install -d -m 0755 /opt/codex-telegram-bridge
+  install -d -m 0700 /var/lib/codex-telegram-bridge
   install -m 0755 "$SCRIPT_DIR/telegram-bridge.py" /opt/codex-telegram-bridge/bridge.py
   cat > /etc/codex-telegram-bridge.env <<EOF
 TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
@@ -556,6 +573,9 @@ TELEGRAM_OWNER_CHAT_ID=$TELEGRAM_OWNER_CHAT_ID
 CODEX_USER=$SETUP_USER
 CODEX_WORKDIR=$GIT_ROOT
 TRANSCRIBE_URL=http://127.0.0.1:8765/v1/transcribe
+TELEGRAM_DIALOG_STATE=/var/lib/codex-telegram-bridge/dialogs.json
+TELEGRAM_DIALOG_BUTTON_LIMIT=90
+TELEGRAM_DIALOG_CONTEXT_MESSAGES=12
 EOF
   chmod 600 /etc/codex-telegram-bridge.env
   cat > /etc/systemd/system/codex-telegram-bridge.service <<'EOF'
@@ -692,4 +712,5 @@ echo "=== Next ==="
 echo "1. Add this key to GitHub/GitLab account-level SSH keys."
 echo "2. Run as $SETUP_USER: codex login --device-auth"
 echo "3. After login: codex app-server daemon bootstrap --remote-control && codex app-server daemon restart && ai-codex-health"
-echo "4. In ChatGPT/Codex, use the same ChatGPT account and connect to remote/local Codex."
+echo "4. Run first-run onboarding as $SETUP_USER: ai-first-run"
+echo "5. In ChatGPT/Codex, use the same ChatGPT account and connect to remote/local Codex."

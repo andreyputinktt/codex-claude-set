@@ -19,13 +19,21 @@ Goal: make the target server work like Andrey's AI automation server:
 - OpenSpec is automatic for real code/behavior/deploy changes; I should not need
   to name it.
 - Telegram control bot works under my Linux user. It must support text, `/run`,
-  `/status`, `/getid`, and voice/audio transcription if OpenAI API key exists.
+  `/status`, `/getid`, `/new`, `/chats`, recent-dialog switching by inline
+  buttons, and voice/audio transcription if OpenAI API key exists.
 - Git creation is automatic: decide whether a request is a new microservice or a
   change to an existing repo. Create a new repo when needed.
 - Git provider setup guides me through GitHub, personal GitLab, KT GitLab, or
   several providers at once.
 - Shared OpenAI env is stored once as `GIT/.env-openai` and loaded by bots.
 - No secrets in git.
+- For API keys and bot tokens, use the secret setter scripts. When a token has
+  a simple command-line health check, pass it as `--verify-command` /
+  `-VerifyCommand`; omit the parameter only when no simple check exists.
+- If this environment is deployed from `codex-claude-set` and I am not the
+  upstream author, periodically check the upstream repo for updated rules and
+  refresh local `GIT/` instructions. Do this at least monthly and before large
+  setup, infrastructure, or agent-policy work.
 
 First ask me these questions, one compact batch:
 
@@ -128,7 +136,16 @@ ai-codex-health
      account is Business/Enterprise/Edu;
    - open ChatGPT mobile/web, go to Codex, choose remote/local app connection,
      and follow the app instructions.
-11. Run the post-install Telegram onboarding:
+11. Run first-run user onboarding:
+   - Ask me to run `ai-first-run` as the target Linux user.
+   - Let it choose/confirm the root `GIT/` folder.
+   - Offer to create/reorganize the folder skeleton and README files according
+     to llm-wiki.
+   - Default AI server should be `ai4u.kt.team`.
+   - Default login prompt should suggest using my kt.team login.
+   - It should guide OpenAI, Telegram, Claude/Anthropic, optional Gemini, mail,
+     personal GitHub SSH, and corporate GitLab setup.
+12. Run the post-install Telegram onboarding:
    - If I did not provide a Telegram bot token, help me create one through
      BotFather.
    - Explain exactly what to type:
@@ -139,7 +156,7 @@ ai-codex-health
    - Help me get my chat id with `/getid` after the bot service starts.
    - Ask which agent the bot should call: Codex, Claude, Hermes, Cursor, or a
      custom shell command. Default to Codex when unsure.
-12. After the control bot works, ask:
+13. After the control bot works, ask:
 
 ```text
 Нужно ли мне создать сейчас еще какого-то тебе бота-ассистента в Telegram?
@@ -195,5 +212,8 @@ Deliverables:
 - The user knows what was installed and how to connect.
 - The root `GIT/` docs describe current server, Git providers, Telegram, env,
   OpenSpec, caveman lite, repo creation, and deploy/autosync.
+- The root `GIT/` docs include the rule to periodically refresh local
+  instructions from upstream `codex-claude-set`, except for the upstream author
+  while authoring those changes.
 - Telegram onboarding is complete or explicitly skipped.
 - No secret is printed in final output.

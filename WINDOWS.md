@@ -56,6 +56,25 @@ Do not store `.env-*`, provider tokens, private service configs, repo state, or
 long-running processes on Windows unless the user explicitly requests a local
 Windows setup.
 
+## Secret Input
+
+Use the PowerShell helper instead of pasting tokens into command history:
+
+```powershell
+.\windows\set-secret.ps1 -Name OPENAI_API_KEY -Provider openai -Server ai-server
+.\windows\set-secret.ps1 -Name OPENAI_API_KEY,GITLAB_TOKEN -Server ai-server
+.\windows\set-secret.ps1 -Name TELEGRAM_BOT_TOKEN -Project assistants/meeting -Server ai-server
+.\windows\set-secret.ps1 -Name GITLAB_TOKEN -VerifyCommand 'curl.exe -fsS --header "PRIVATE-TOKEN: $env:GITLAB_TOKEN" https://gitlab.com/api/v4/user | Out-Null' -Server ai-server
+```
+
+Without `-Project`, the script writes the root shared file
+`GIT\.env-<provider>`. With `-Project`, it writes `GIT\<project>\.env`. If
+`-Server` is provided, it uploads that same env file to `~/GIT` on the server
+and sets remote permissions to `600`. Pass several names with commas to request
+them one after another in a single run. Use `-VerifyCommand` when a token can be
+checked with a simple command; the command runs before upload with saved env
+values loaded.
+
 ## Verify
 
 ```powershell

@@ -86,6 +86,17 @@ belong in separate files only when actually useful.
 Minimize folders. Create a folder only when it owns logic, data, or docs that
 need a separate README.
 
+## Upstream Instruction Refresh
+
+Installed employee environments should periodically refresh their working rules
+from this upstream `codex-claude-set` repository. At least monthly, and before
+large setup or infrastructure work, check the current `README.md`, `DEV.md`,
+`PROMPT.md`, `INSTALL.md`, and relevant recipes, then update the local server
+rules if upstream changed.
+
+This reminder is for people who deployed from the kit. It does not apply to the
+upstream author while authoring the rules themselves.
+
 ## OpenSpec
 
 OpenSpec is automatic:
@@ -134,6 +145,7 @@ Root shared providers:
 - `GIT/.env-openai`
 - `GIT/.env-anthropic`
 - `GIT/.env-gemini`
+- `GIT/.env-google`
 - `GIT/.env-github`
 - `GIT/.env-gitlab`
 - `GIT/.env-telegram`
@@ -146,10 +158,50 @@ Load order for bots:
 2. shared assistants env;
 3. service `.env`.
 
+## Secret Setter
+
+Use the repo scripts for API keys and bot tokens. Do not paste secrets into
+shell history, command arguments, docs, logs, or git-tracked files.
+
+macOS/Linux:
+
+```bash
+./scripts/set-secret.sh --name OPENAI_API_KEY --provider openai --server a.putin@178.105.78.17
+./scripts/set-secret.sh --name OPENAI_API_KEY --name GITLAB_TOKEN --server a.putin@178.105.78.17
+./scripts/set-secret.sh --name TELEGRAM_BOT_TOKEN --project assistants/meeting --server a.putin@178.105.78.17
+./scripts/set-secret.sh --name GITLAB_TOKEN --verify-command 'curl -fsS --header "PRIVATE-TOKEN: $GITLAB_TOKEN" https://gitlab.com/api/v4/user >/dev/null' --server a.putin@178.105.78.17
+```
+
+Windows PowerShell:
+
+```powershell
+.\windows\set-secret.ps1 -Name OPENAI_API_KEY -Provider openai -Server ai-server
+.\windows\set-secret.ps1 -Name OPENAI_API_KEY,GITLAB_TOKEN -Server ai-server
+.\windows\set-secret.ps1 -Name TELEGRAM_BOT_TOKEN -Project assistants/meeting -Server ai-server
+.\windows\set-secret.ps1 -Name GITLAB_TOKEN -VerifyCommand 'curl.exe -fsS --header "PRIVATE-TOKEN: $env:GITLAB_TOKEN" https://gitlab.com/api/v4/user | Out-Null' -Server ai-server
+```
+
+Without a project, the script writes `GIT/.env-<provider>`. With a project, it
+writes `GIT/<project>/.env`. When `--server` / `-Server` is provided, the same
+ignored env file is copied to the server under `~/GIT` and chmodded to `600`.
+If the variable name is obvious, provider can be inferred: `OPENAI_*`,
+`ANTHROPIC_*`, `GEMINI_*`, `GOOGLE_*`, `GITHUB_*`, `GITLAB_*`, `TELEGRAM_*`.
+Repeat `--name` in bash, or pass a PowerShell array with commas, to request
+several secrets sequentially in one run.
+
+When a token has a simple health check, call the script with
+`--verify-command` / `-VerifyCommand`. The command runs after local save with
+the saved env values loaded, and before server upload. If verification fails,
+upload is skipped. Do not put token literals inside the command; reference env
+variables instead.
+
 ## Telegram Bots
 
 - Owner allowlist by chat id.
 - `/getid` can work before allowlist; real commands cannot.
+- Control bot supports multiple Codex dialogs: `/new`, `/chats`, and inline
+  buttons for recent dialogs. Keep dialog state bounded and never store secrets
+  in dialog history.
 - Text, voice, and audio are first-class inputs.
 - Telegram `.oga`/`.opus` voice files should be passed as `.ogg` to
   transcription APIs.
