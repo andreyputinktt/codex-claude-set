@@ -50,6 +50,22 @@ After ChatGPT device login, Codex remote control must be durable:
 - enable `codex-app-server-healthcheck.timer`;
 - verify with `ai-codex-health`.
 
+The healthcheck timer runs `ai-codex-remote-guard`, not a foreground
+`codex remote-control --json` command. Foreground remote-control commands can
+stay alive and create duplicate websocket claims, which shows up as
+`409 Conflict` / `Remote app server already online`. Use:
+
+```bash
+ai-codex-remote-status
+ai-codex-remote-recover
+ai-codex-remote-recover --reset-enrollment
+```
+
+`--reset-enrollment` backs up `~/.codex/state_5.sqlite`, removes only
+`remote_control_enrollments`, and restarts the managed daemon. Use it when
+status/logs show stale remote-control state such as `connection is errored`,
+repeated 409, or websocket disconnects without a newer connected event.
+
 Keep the global `@openai/codex` npm package current enough to match the managed
 app-server version. Version skew is not usually the root cause of stopped runs,
 but matching versions removes one avoidable variable during diagnosis.

@@ -128,6 +128,7 @@ codex app-server daemon version
 sudo systemctl enable --now codex-app-server-daemon.service
 sudo systemctl enable --now codex-app-server-healthcheck.timer
 ai-codex-health
+ai-codex-remote-status
 ```
 
 10. Help me open ChatGPT/Codex remote access:
@@ -184,11 +185,17 @@ If ChatGPT shows "waiting for desktop app", check on the server:
 codex login status
 codex app-server daemon version
 ai-codex-health
+ai-codex-remote-status
 pgrep -a -u "$USER" -f "codex|app-server"
 ss -xlpn | grep app-server
 ```
 
-Restart the daemon after successful login.
+Restart the daemon after successful login. Do not run
+`codex remote-control --json` as a healthcheck; it is foreground-oriented and
+can leave a duplicate remote-control claim. If remote-control is stale, run
+`ai-codex-remote-recover`; if logs show `409 Conflict`,
+`Remote app server already online`, or `connection is errored`, run
+`ai-codex-remote-recover --reset-enrollment`.
 
 If I report "codex run stopped", read Codex CLI/session logs through summaries
 first. Do not dump raw `~/.codex/sessions/**/*.jsonl`, screenshots, base64, or

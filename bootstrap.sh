@@ -315,6 +315,18 @@ Codex is configured for long SSH-driven work through the app-server daemon:
 - health timer: \`codex-app-server-healthcheck.timer\`;
 - quick check: \`ai-codex-health\`.
 
+Remote-control diagnostics:
+
+\`\`\`bash
+ai-codex-remote-status
+ai-codex-remote-recover
+ai-codex-remote-recover --reset-enrollment
+\`\`\`
+
+Do not run \`codex remote-control --json\` as a healthcheck. It is
+foreground-oriented and can leave duplicate websocket claims, causing
+\`409 Conflict\` / \`Remote app server already online\`.
+
 When investigating \`codex run stopped\`, do not dump raw
 \`~/.codex/sessions/**/*.jsonl\`, screenshots, base64, or broad \`rg\` output
 into the agent context. Parse and summarize first. Large raw tool outputs can
@@ -464,6 +476,7 @@ command -v codex || true
 codex --version || true
 codex login status || true
 codex app-server daemon version || true
+ai-codex-remote-status || true
 
 echo
 echo "== processes =="
@@ -500,6 +513,206 @@ if [[ -n "$latest" ]]; then
 fi
 EOF
 chmod 755 /usr/local/bin/ai-codex-health
+
+cat > /usr/local/bin/ai-codex-remote-status <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "== remote control status =="
+python3 - <<'PY'
+import datetime
+import pathlib
+import sqlite3
+
+home = pathlib.Path.home()
+state = home / ".codex" / "state_5.sqlite"
+logs = home / ".codex" / "logs_2.sqlite"
+
+def ts_to_iso(value):
+    try:
+        return datetime.datetime.fromtimestamp(int(value)).isoformat()
+    except Exception:
+        return str(value)
+
+if state.exists():
+    try:
+        con = sqlite3.connect(f"file:{state}?mode=ro", uri=True)
+        rows = con.execute(
+            "select server_name, environment_id, server_id, updated_at "
+            "from remote_control_enrollments order by updated_at desc limit 5"
+        ).fetchall()
+        con.close()
+        print("enrollments:")
+        if rows:
+            for server_name, env_id, server_id, updated_at in rows:
+                print(f"- {server_name} env={env_id} server={server_id} updated={ts_to_iso(updated_at)}")
+        else:
+            print("- none")
+    except Exception as exc:
+        print(f"enrollments: unavailable: {exc}")
+else:
+    print("enrollments: state DB missing")
+
+if logs.exists():
+    try:
+        con = sqlite3.connect(f"file:{logs}?mode=ro", uri=True)
+        rows = con.execute(
+            "select ts, level, target, feedback_log_body from logs "
+            "where target like '%remote_control%' "
+            "or feedback_log_body like '%remote control%' "
+            "or feedback_log_body like '%409 Conflict%' "
+            "order by ts desc limit 12"
+        ).fetchall()
+        con.close()
+        print("recent remote-control logs:")
+        if rows:
+            for ts, level, target, body in rows:
+                body = " ".join(str(body).split())[:360]
+                print(f"- {ts_to_iso(ts)} {level} {target}: {body}")
+        else:
+            print("- none")
+    except Exception as exc:
+        print(f"recent remote-control logs: unavailable: {exc}")
+else:
+    print("recent remote-control logs: log DB missing")
+PY
+
+echo "foreground remote-control processes:"
+ps -u "$USER" -o pid=,ppid=,etime=,stat=,args= \
+  | awk '/codex remote-control/ && !/awk/ {print "- " $0}' || true
+EOF
+chmod 755 /usr/local/bin/ai-codex-remote-status
+
+cat > /usr/local/bin/ai-codex-remote-recover <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+reset_enrollment=0
+for arg in "$@"; do
+  case "$arg" in
+    --reset-enrollment) reset_enrollment=1 ;;
+    -h|--help)
+      echo "usage: ai-codex-remote-recover [--reset-enrollment]"
+      exit 0
+      ;;
+    *) echo "unknown argument: $arg" >&2; exit 2 ;;
+  esac
+done
+
+state="$HOME/.codex/state_5.sqlite"
+if [[ -f "$state" ]]; then
+  backup="$state.bak.$(date +%Y%m%d-%H%M%S)"
+  cp "$state" "$backup"
+  echo "state backup: $backup"
+fi
+
+echo "stopping stray foreground remote-control processes"
+while read -r pid _rest; do
+  [[ -n "${pid:-}" ]] || continue
+  [[ "$pid" == "$$" ]] && continue
+  kill "$pid" 2>/dev/null || true
+done < <(ps -u "$USER" -o pid=,args= | awk '/codex remote-control/ && !/awk/ {print $1}')
+
+timeout 20s codex remote-control stop >/dev/null 2>&1 || true
+if ! pgrep -u "$USER" -f "codex app-server .*--listen" >/dev/null 2>&1; then
+  rm -f \
+    "$HOME/.codex/app-server-control/app-server-control.sock" \
+    "$HOME/.codex/app-server-control/app-server-startup.lock" \
+    "$HOME/.codex/app-server-daemon/app-server.pid" \
+    "$HOME/.codex/app-server-daemon/app-server-updater.pid"
+fi
+
+echo "restarting managed app-server daemon"
+codex app-server daemon bootstrap --remote-control || true
+codex app-server daemon restart || codex app-server daemon start || true
+codex app-server daemon enable-remote-control || true
+
+if [[ "$reset_enrollment" -eq 1 ]]; then
+  echo "resetting stale remote_control_enrollments"
+  python3 - <<'PY'
+import pathlib
+import sqlite3
+
+state = pathlib.Path.home() / ".codex" / "state_5.sqlite"
+if state.exists():
+    con = sqlite3.connect(state)
+    con.execute("delete from remote_control_enrollments")
+    con.commit()
+    con.close()
+PY
+  codex app-server daemon restart || codex app-server daemon start || true
+  codex app-server daemon enable-remote-control || true
+fi
+
+sleep 5
+codex app-server daemon version || true
+ai-codex-remote-status || true
+EOF
+chmod 755 /usr/local/bin/ai-codex-remote-recover
+
+cat > /usr/local/bin/ai-codex-remote-guard <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+bad=0
+unknown=0
+
+if ps -u "$USER" -o args= | awk '/codex remote-control/ && !/awk/ {found=1} END {exit found ? 0 : 1}'; then
+  echo "[codex-remote-guard] foreground codex remote-control process found"
+  bad=1
+fi
+
+python3 - <<'PY' || case "$?" in 10) bad=1 ;; 20) unknown=1 ;; *) unknown=1 ;; esac
+import pathlib
+import sqlite3
+import sys
+
+logs = pathlib.Path.home() / ".codex" / "logs_2.sqlite"
+if not logs.exists():
+    sys.exit(20)
+
+con = sqlite3.connect(f"file:{logs}?mode=ro", uri=True)
+row = con.execute(
+    "select level, feedback_log_body from logs "
+    "where target like '%remote_control::websocket%' "
+    "or feedback_log_body like '%409 Conflict%' "
+    "or feedback_log_body like '%websocket reader disconnected%' "
+    "or feedback_log_body like '%websocket writer was stopped%' "
+    "or feedback_log_body like '%failed to connect app-server remote control websocket%' "
+    "order by ts desc limit 1"
+).fetchone()
+con.close()
+
+if row is None:
+    sys.exit(20)
+
+level, body = row
+body = str(body)
+bad_markers = [
+    "409 Conflict",
+    "connection is errored",
+    "websocket reader disconnected",
+    "websocket writer was stopped",
+    "failed to connect app-server remote control websocket",
+]
+if any(marker in body for marker in bad_markers):
+    print("[codex-remote-guard] latest remote-control log is bad:", " ".join(body.split())[:360])
+    sys.exit(10)
+print("[codex-remote-guard] latest remote-control log looks healthy")
+PY
+
+if [[ "$bad" -eq 1 ]]; then
+  ai-codex-remote-recover --reset-enrollment
+elif [[ "$unknown" -eq 1 ]]; then
+  codex app-server daemon bootstrap --remote-control || true
+  codex app-server daemon start || true
+  codex app-server daemon enable-remote-control || true
+  codex app-server daemon version || true
+else
+  codex app-server daemon version || true
+fi
+EOF
+chmod 755 /usr/local/bin/ai-codex-remote-guard
 
 cat > /usr/local/bin/ai-codex-session-summary <<'EOF'
 #!/usr/bin/env bash
@@ -668,9 +881,7 @@ Group=$SETUP_USER
 Environment=HOME=$USER_HOME
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 WorkingDirectory=$GIT_ROOT
-ExecStart=/usr/local/bin/codex app-server daemon start
-ExecStart=/usr/local/bin/codex app-server daemon enable-remote-control
-ExecStart=/usr/local/bin/codex app-server daemon version
+ExecStart=/usr/local/bin/ai-codex-remote-guard
 TimeoutStartSec=60
 EOF
 cat > /etc/systemd/system/codex-app-server-healthcheck.timer <<'EOF'

@@ -64,9 +64,10 @@ sudo bash bootstrap.sh
 
 ```bash
 codex login --device-auth
-codex app-server daemon bootstrap
+codex app-server daemon bootstrap --remote-control
 codex app-server daemon start
 codex app-server daemon enable-remote-control
+ai-codex-health
 ```
 
 Then the user opens the device link, enters the code, and connects from

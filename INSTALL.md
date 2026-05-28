@@ -106,10 +106,22 @@ sudo -iu <USER> codex app-server daemon version
 sudo systemctl enable --now codex-app-server-daemon.service
 sudo systemctl enable --now codex-app-server-healthcheck.timer
 sudo -iu <USER> ai-codex-health
+sudo -iu <USER> ai-codex-remote-status
 ```
 
 For Business/Enterprise/Edu accounts, workspace admins may need to enable Codex
 Local and Remote Control permissions.
+
+Do not use `codex remote-control --json` as a background health probe. It can
+run in foreground and create a duplicate remote-control websocket claim. If
+remote access is stale or ChatGPT reports `codex run stopped` while the daemon
+is still alive, use:
+
+```bash
+sudo -iu <USER> ai-codex-remote-status
+sudo -iu <USER> ai-codex-remote-recover
+sudo -iu <USER> ai-codex-remote-recover --reset-enrollment
+```
 
 If the user reports "codex run stopped", first run `ai-codex-health`. Then read
 session logs only through filters such as `jq` summaries of `event_msg` and
