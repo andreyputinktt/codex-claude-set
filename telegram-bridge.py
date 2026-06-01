@@ -26,6 +26,26 @@ BACKEND_LABELS = {
     "hermes": "Hermes",
 }
 BACKEND_LABEL = BACKEND_LABELS.get(TELEGRAM_BACKEND, TELEGRAM_BACKEND or "Agent")
+PROVIDER_ENV_NAMES = (
+    "ANTHROPIC_API_KEY",
+    "ARCEEAI_API_KEY",
+    "GEMINI_API_KEY",
+    "GITHUB_TOKEN",
+    "GLM_API_KEY",
+    "GOOGLE_API_KEY",
+    "HF_TOKEN",
+    "KILOCODE_API_KEY",
+    "KIMI_API_KEY",
+    "LM_API_KEY",
+    "MINIMAX_API_KEY",
+    "MINIMAX_CN_API_KEY",
+    "NOUS_API_KEY",
+    "NVIDIA_API_KEY",
+    "OLLAMA_API_KEY",
+    "OPENAI_API_KEY",
+    "OPENROUTER_API_KEY",
+    "XIAOMI_API_KEY",
+)
 
 
 def api(method, data=None):
@@ -76,7 +96,12 @@ def run_shell(command):
 
 def run_as_agent_user(command):
     if AGENT_USER and AGENT_USER != os.environ.get("USER", ""):
-        return ["sudo", "-H", "-u", AGENT_USER, *command]
+        provider_env = [
+            f"{name}={value}"
+            for name in PROVIDER_ENV_NAMES
+            if (value := os.environ.get(name))
+        ]
+        return ["sudo", "-H", "-u", AGENT_USER, "env", *provider_env, *command]
     return command
 
 
