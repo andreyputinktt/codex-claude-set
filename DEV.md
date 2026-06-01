@@ -215,9 +215,12 @@ variables instead.
 
 - Owner allowlist by chat id.
 - `/getid` can work before allowlist; real commands cannot.
-- Control bot supports multiple Codex dialogs: `/new`, `/chats`, and inline
-  buttons for recent dialogs. Keep dialog state bounded and never store secrets
-  in dialog history.
+- Control bot supports multiple agent dialogs for Codex or Hermes via
+  `TELEGRAM_BACKEND`: `/new`, `/chats`, and inline buttons for recent dialogs.
+  Keep dialog state bounded and never store secrets in dialog history.
+- Hermes bridge deployments may set `TELEGRAM_HERMES_PROVIDER` and
+  `TELEGRAM_HERMES_MODEL` so headless service runs do not depend on interactive
+  `hermes model`.
 - Text, voice, and audio are first-class inputs.
 - Telegram `.oga`/`.opus` voice files should be passed as `.ogg` to
   transcription APIs.

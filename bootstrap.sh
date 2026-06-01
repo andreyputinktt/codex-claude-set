@@ -783,6 +783,9 @@ if [[ "$TELEGRAM_MODE" =~ ^[Yy] && -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_OWN
   cat > /etc/codex-telegram-bridge.env <<EOF
 TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
 TELEGRAM_OWNER_CHAT_ID=$TELEGRAM_OWNER_CHAT_ID
+TELEGRAM_BACKEND=codex
+AGENT_USER=$SETUP_USER
+AGENT_WORKDIR=$GIT_ROOT
 CODEX_USER=$SETUP_USER
 CODEX_WORKDIR=$GIT_ROOT
 TRANSCRIBE_URL=http://127.0.0.1:8765/v1/transcribe
@@ -793,7 +796,7 @@ EOF
   chmod 600 /etc/codex-telegram-bridge.env
   cat > /etc/systemd/system/codex-telegram-bridge.service <<'EOF'
 [Unit]
-Description=Codex Telegram Bridge
+Description=AI Telegram Bridge
 After=network-online.target
 Wants=network-online.target
 

@@ -30,8 +30,9 @@ profile, people records, diaries, voice transcription, and Telegram control.
   files, with upload to the Ubuntu server over SSH.
 - Helper for creating new microservice repos.
 - Telegram bot bridge under the selected Linux user, including `/status`,
-  `/getid`, `/run`, `/new`, `/chats`, text-to-Codex, recent-dialog switching by
-  inline buttons, and voice/audio transcription when OpenAI is configured.
+  `/getid`, `/run`, `/new`, `/chats`, text-to-agent for Codex or Hermes,
+  recent-dialog switching by inline buttons, and voice/audio transcription when
+  OpenAI is configured.
 - Guided post-install flow for BotFather: first create the control bot, then
   ask whether the user wants another Telegram assistant bot.
 - Optional local speech transcription microservice shared by all bots.
