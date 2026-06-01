@@ -16,6 +16,7 @@ AGENT_WORKDIR = os.environ.get("AGENT_WORKDIR", os.environ.get("CODEX_WORKDIR", 
 TELEGRAM_BACKEND = os.environ.get("TELEGRAM_BACKEND", "codex").strip().lower()
 TELEGRAM_HERMES_PROVIDER = os.environ.get("TELEGRAM_HERMES_PROVIDER", "").strip()
 TELEGRAM_HERMES_MODEL = os.environ.get("TELEGRAM_HERMES_MODEL", os.environ.get("HERMES_INFERENCE_MODEL", "")).strip()
+TELEGRAM_HERMES_FALLBACK_MODEL = os.environ.get("TELEGRAM_HERMES_FALLBACK_MODEL", "").strip()
 TRANSCRIBE_URL = os.environ.get("TRANSCRIBE_URL", "http://127.0.0.1:8765/v1/transcribe")
 STATE_PATH = os.environ.get("TELEGRAM_DIALOG_STATE", "/var/lib/codex-telegram-bridge/dialogs.json")
 MAX_DIALOG_BUTTONS = int(os.environ.get("TELEGRAM_DIALOG_BUTTON_LIMIT", "90"))
@@ -122,12 +123,13 @@ def run_codex(prompt):
     ).stdout
 
 
-def run_hermes(prompt):
+def run_hermes(prompt, model=None):
     command = ["hermes"]
     if TELEGRAM_HERMES_PROVIDER:
         command.extend(["--provider", TELEGRAM_HERMES_PROVIDER])
-    if TELEGRAM_HERMES_MODEL:
-        command.extend(["--model", TELEGRAM_HERMES_MODEL])
+    selected_model = model or TELEGRAM_HERMES_MODEL
+    if selected_model:
+        command.extend(["--model", selected_model])
     command.extend(["--accept-hooks", "--yolo", "--oneshot", prompt])
     cmd = run_as_agent_user(command)
     return subprocess.run(
@@ -140,11 +142,33 @@ def run_hermes(prompt):
     ).stdout
 
 
+def should_retry_hermes(output):
+    markers = (
+        "HTTP 429",
+        "HTTP 500",
+        "HTTP 502",
+        "HTTP 503",
+        "HTTP 504",
+        "UNAVAILABLE",
+        "no final response was produced",
+    )
+    return output.startswith("hermes -z:") or any(marker in output for marker in markers)
+
+
 def run_agent(prompt):
     if TELEGRAM_BACKEND == "codex":
         return run_codex(prompt)
     if TELEGRAM_BACKEND == "hermes":
-        return run_hermes(prompt)
+        out = run_hermes(prompt)
+        if (
+            TELEGRAM_HERMES_FALLBACK_MODEL
+            and TELEGRAM_HERMES_FALLBACK_MODEL != TELEGRAM_HERMES_MODEL
+            and should_retry_hermes(out)
+        ):
+            fallback_out = run_hermes(prompt, TELEGRAM_HERMES_FALLBACK_MODEL)
+            if fallback_out and not should_retry_hermes(fallback_out):
+                return fallback_out
+        return out
     return f"Unsupported TELEGRAM_BACKEND: {TELEGRAM_BACKEND or '<empty>'}"
 
 
