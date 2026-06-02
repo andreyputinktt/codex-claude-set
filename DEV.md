@@ -24,6 +24,19 @@ Use:
 - `caveman-compress` only for long prose memory/docs files. Do not compress code,
   configs, env files, logs, or OpenSpec artifacts unless explicitly requested.
 
+## Skill Design
+
+Prefer script-first skills. Deterministic, loosely coupled scripts should do the
+repeatable work; `SKILL.md` should stay compact and say when to use the script,
+what inputs and outputs it accepts, and what safety boundaries apply.
+
+Prefer small CLI tools with `--dry-run`, `--json`, explicit env loading, clear
+exit codes, and tests. Do not turn skills into long prose docs when repeatable
+mechanics can live in a bundled script.
+
+`caveman full` is acceptable for drafting or compressing skill instructions when
+it preserves exact commands, paths, data schemas, checks, and safety rules.
+
 ## Codex Permissions
 
 Default server Codex config is intentionally full access:
