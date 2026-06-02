@@ -52,7 +52,7 @@ compatibility: Read .agents/skills/telegram-send/SKILL.md.
 
 Read the canonical skill:
 
-`$GIT_ROOT/.agents/skills/telegram-send/SKILL.md`
+${GIT_ROOT}/.agents/skills/telegram-send/SKILL.md
 EOF
 done
 
@@ -66,7 +66,7 @@ alwaysApply: false
 
 For Telegram outbound messages, read:
 
-`$GIT_ROOT/.agents/skills/telegram-send/SKILL.md`
+${GIT_ROOT}/.agents/skills/telegram-send/SKILL.md
 EOF
 
 if [[ -n "$OWNER" ]]; then
