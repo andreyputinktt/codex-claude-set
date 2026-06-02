@@ -158,6 +158,13 @@ install -d -o "$SETUP_USER" -g "$SETUP_USER" "$USER_HOME/.ssh" "$GIT_ROOT" \
   "$USER_HOME/.codex" "$USER_HOME/.agents/skills" "$GIT_ROOT/assistants"
 chmod 700 "$USER_HOME/.ssh"
 
+if [[ -x "$SCRIPT_DIR/scripts/install-skills.sh" ]]; then
+  "$SCRIPT_DIR/scripts/install-skills.sh" \
+    --git-root "$GIT_ROOT" \
+    --home "$USER_HOME" \
+    --owner "$SETUP_USER:$SETUP_USER"
+fi
+
 KEY="$USER_HOME/.ssh/github_account_ed25519"
 if [[ ! -f "$KEY" ]]; then
   as_user "ssh-keygen -t ed25519 -N '' -C 'github-account@$SERVER_LABEL' -f '$KEY'"

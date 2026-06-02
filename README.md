@@ -33,6 +33,8 @@ profile, people records, diaries, voice transcription, and Telegram control.
   `/getid`, `/run`, `/new`, `/chats`, text-to-agent for Codex or Hermes,
   recent-dialog switching by inline buttons, and voice/audio transcription when
   OpenAI is configured.
+- Bundled `telegram-send` skill installable from this repo for first-person
+  Telegram userapi sends and optional bot sends.
 - Guided post-install flow for BotFather: first create the control bot, then
   ask whether the user wants another Telegram assistant bot.
 - Optional local speech transcription microservice shared by all bots.
@@ -86,6 +88,19 @@ ai-first-run
 It guides root-folder organization, README skeletons, default server/login,
 OpenAI/Anthropic/Gemini/Telegram secrets, mail accounts, GitHub SSH, and
 corporate GitLab access.
+
+## Bundled Skills
+
+Install bundled skills into an existing server workspace:
+
+```bash
+cd ~/GIT/codex-claude-set
+scripts/install-skills.sh --git-root ~/GIT --home "$HOME"
+```
+
+The `telegram-send` skill is installed into `GIT/.agents/skills` and
+`~/.agents/skills`, with lightweight Codex/Claude/Hermes/Cursor adapters in the
+workspace.
 
 ## Windows Station
 
