@@ -6,6 +6,13 @@ but ask me for values that cannot be inferred.
 
 Goal: make the target server work like Andrey's AI automation server:
 
+- I answer clear beginner-friendly questions and follow links; do not assume I
+  know SSH, Git providers, env files, or server setup.
+- I end with a local starter folder on this computer and the same starter
+  llm-wiki folder shape on the server.
+- Personal GitHub is configured. Work GitHub/GitLab is configured only if I ask.
+- The server is either my personal Ubuntu server, a Timeweb/other VPS I provide,
+  or `ai4u.kt.team` when I am a KT employee.
 - Codex CLI installed and configured with full access:
   `approval_policy = "never"`, `sandbox_mode = "danger-full-access"`, and
   `[sandbox_workspace_write] network_access = true` as an explicit fallback for
@@ -15,6 +22,10 @@ Goal: make the target server work like Andrey's AI automation server:
 - Claude Code, OpenCode, OpenClaw, Hermes Agent, OpenSpec, skills CLI, Node/npm,
   Python, Docker, git, gh, audio/OCR/PDF/dev packages installed.
 - `GIT/` root configured with README/DEV/AGENTS/CLAUDE/llm-wiki principles.
+- `ai-index-refresh` is used so the root README index and repo/folder llm-wiki
+  files are updated automatically instead of relying on agent memory.
+- Hermes and/or OpenClaw are connected if I choose them; otherwise Codex/Claude
+  are enough for the first setup.
 - `caveman lite` is the default communication style; I should not need to ask.
 - OpenSpec is automatic for real code/behavior/deploy changes; I should not need
   to name it.
@@ -35,23 +46,31 @@ Goal: make the target server work like Andrey's AI automation server:
   refresh local `GIT/` instructions. Do this at least monthly and before large
   setup, infrastructure, or agent-policy work.
 
-First ask me these questions, one compact batch:
+First ask me these questions, one compact batch, using simple language:
 
-1. Server IP/hostname.
+1. Starter folder path on this computer. Default `~/GIT`.
 2. OpenAI or Claude login/email, used to derive a personal default Linux
    username.
-3. Linux username to create/use, if different from that personal default. Do not
+3. Whether I have or want personal GitHub.
+4. Whether I also need a work Git provider: GitHub, personal GitLab, KT GitLab,
+   or none.
+5. Server choice: KT `ai4u.kt.team`, personal Timeweb/other Ubuntu server, or no
+   server yet.
+6. Server IP/hostname, if not default KT.
+7. Linux username to create/use, if different from that personal default. Do not
    use generic names such as `ai`.
-4. Is this server KT-managed? If yes, prepare SSH key access request for
-   Timofeev. If no, ask whether to use password now or existing SSH key.
-5. Git provider choices: GitHub, GitLab personal, GitLab KT, or several.
-6. GitHub/GitLab username/group namespace.
-7. Whether this computer is Windows and should be configured as a station.
-8. Telegram bot token and owner chat id, or "help me create Telegram bot".
-9. OpenAI API key, or "skip voice transcription".
+8. Whether password SSH is available now, existing SSH key works, or an admin
+   must add a key first.
+9. Whether to disable password SSH after key login is verified.
+10. Whether this computer is Windows and should be configured as a station.
+11. Backend preference: Codex/Claude only, Hermes, OpenClaw, or both.
+12. Telegram bot token and owner chat id, or "help me create Telegram bot".
+13. OpenAI API key, Anthropic/Claude API key, Gemini API key, or skip each.
 
 Server access rules:
 
+- Use `scripts/prepare-server-access.sh` for SSH key generation and access
+  messages. Do not rely only on prose instructions.
 - If this is a new Ubuntu server, check SSH stability before the main setup.
   Ubuntu defaults often drop long SSH sessions, so verify or configure server
   keepalive first and keep the current session open until a second SSH login
@@ -71,8 +90,9 @@ Server access rules:
 После добавления я подключусь и сам разверну Codex/Claude/OpenSpec/Git/Telegram.
 ```
 
-- If not KT-managed, password auth is acceptable for the first setup. Configure
-  SSH keepalive and later recommend switching to key-only auth.
+- If not KT-managed, password auth is acceptable for the first setup. Install
+  the generated key, verify a second SSH login with the key, then ask whether to
+  disable password SSH and switch to key-only auth.
 
 User naming rules:
 
@@ -92,13 +112,32 @@ Windows station rules:
 
 Implementation:
 
-1. For a new Ubuntu server, verify SSH keepalive/stability before copying or
+1. If this computer is macOS/Linux and scripts can run locally, run:
+
+```bash
+scripts/beginner-onboarding.sh
+```
+
+If the user is on Windows, run:
+
+```powershell
+.\windows\onboarding.ps1
+```
+
+Use the wizard output as the source of truth for local root, server target,
+keys, provider choices, and backend preference.
+2. If scripts cannot run, manually perform the same scripted steps:
+   - `scripts/install-local-prereqs.sh`;
+   - `scripts/prepare-server-access.sh`;
+   - `scripts/refresh-llm-wiki-index.sh --root <LOCAL_GIT_ROOT>`;
+   - `scripts/mirror-workspace.sh --local-root <LOCAL_GIT_ROOT> --server <USER>@<HOST>`.
+3. For a new Ubuntu server, verify SSH keepalive/stability before copying or
    running the installer.
-2. Clone or create this setup repo locally as `codex-claude-set`.
-3. Copy it to the server under `/tmp/codex-claude-set`.
-4. Run `sudo bash /tmp/codex-claude-set/bootstrap.sh`.
-5. Answer installer prompts using the values I gave you.
-6. Verify:
+4. Clone or create this setup repo locally as `codex-claude-set`.
+5. Copy it to the server under `/tmp/codex-claude-set`.
+6. Run `sudo bash /tmp/codex-claude-set/bootstrap.sh`.
+7. Answer installer prompts using the values I gave you.
+8. Verify:
    - `codex --version`
    - `claude --version`
    - `openclaw --version`
@@ -112,12 +151,12 @@ Implementation:
    - Telegram service status if configured
    - speech transcriber health if configured
    - `ssh -T git@github.com` or GitLab equivalent if provider key was added
-7. If the user works from Windows, configure it with `windows/bootstrap.ps1`,
+9. If the user works from Windows, configure it with `windows/onboarding.ps1`,
    verify `ai-server`, and explain `ai-shell`, `codex-server`, and Cursor/VS
    Code Remote SSH into `ai-server:~/GIT`.
-8. Run `codex login --device-auth`, give me the URL and code, and wait while I
+10. Run `codex login --device-auth`, give me the URL and code, and wait while I
    complete login.
-9. After login, run:
+11. After login, run:
 
 ```bash
 codex app-server daemon bootstrap --remote-control
@@ -131,13 +170,13 @@ ai-codex-health
 ai-codex-remote-status
 ```
 
-10. Help me open ChatGPT/Codex remote access:
+12. Help me open ChatGPT/Codex remote access:
    - same ChatGPT account as device login;
    - workspace/admin setting must allow Codex Local and Remote Control when the
      account is Business/Enterprise/Edu;
    - open ChatGPT mobile/web, go to Codex, choose remote/local app connection,
      and follow the app instructions.
-11. Run first-run user onboarding:
+13. Run first-run user onboarding:
    - Ask me to run `ai-first-run` as the target Linux user.
    - Let it choose/confirm the root `GIT/` folder.
    - Offer to create/reorganize the folder skeleton and README files according
@@ -146,7 +185,8 @@ ai-codex-remote-status
    - Default login prompt should suggest using my kt.team login.
    - It should guide OpenAI, Telegram, Claude/Anthropic, optional Gemini, mail,
      personal GitHub SSH, and corporate GitLab setup.
-12. Run the post-install Telegram onboarding:
+   - Run `ai-index-refresh --root ~/GIT` after setup and after any new repo.
+14. Run the post-install Telegram onboarding:
    - If I did not provide a Telegram bot token, help me create one through
      BotFather.
    - Explain exactly what to type:

@@ -231,6 +231,8 @@ then the target repo README.
 - Loose coupling: each service or assistant is its own repo.
 - README files are indexes, not diaries.
 - OpenSpec is automatic for behavior/code/deploy changes.
+- Run \`ai-index-refresh --root ~/GIT\` after repo/folder changes; \`ai-new-repo\`
+  runs it automatically.
 - Caveman lite is the default response style.
 - Secrets stay in ignored \`.env\` files.
 - Windows workstations are clients only; run code, git, env, services, and
@@ -310,6 +312,17 @@ unless explicitly requested.
 
 Use OpenSpec automatically for behavior, code, deploy, integration, schema, bot,
 prompt, or workflow changes.
+
+## LLM Wiki Index
+
+Keep the root README and repo/folder agent files current with:
+
+\`\`\`bash
+ai-index-refresh --root "$GIT_ROOT"
+\`\`\`
+
+\`ai-new-repo\` runs this automatically. Do not rely on memory to update the
+index after creating, moving, or renaming repos/folders.
 
 ## Codex Stability
 
@@ -403,7 +416,19 @@ if [[ ! -d "$GIT_ROOT/.git" ]]; then
 fi
 
 install -m 0755 "$SCRIPT_DIR/scripts/set-secret.sh" /usr/local/bin/ai-set-secret
+install -m 0755 "$SCRIPT_DIR/scripts/set-secret.sh" /usr/local/bin/set-secret.sh
 install -m 0755 "$SCRIPT_DIR/scripts/first-run.sh" /usr/local/bin/ai-first-run
+install -m 0755 "$SCRIPT_DIR/scripts/first-run.sh" /usr/local/bin/first-run.sh
+install -m 0755 "$SCRIPT_DIR/scripts/install-local-prereqs.sh" /usr/local/bin/ai-install-local-prereqs
+install -m 0755 "$SCRIPT_DIR/scripts/install-local-prereqs.sh" /usr/local/bin/install-local-prereqs.sh
+install -m 0755 "$SCRIPT_DIR/scripts/prepare-server-access.sh" /usr/local/bin/ai-prepare-server-access
+install -m 0755 "$SCRIPT_DIR/scripts/prepare-server-access.sh" /usr/local/bin/prepare-server-access.sh
+install -m 0755 "$SCRIPT_DIR/scripts/refresh-llm-wiki-index.sh" /usr/local/bin/ai-index-refresh
+install -m 0755 "$SCRIPT_DIR/scripts/refresh-llm-wiki-index.sh" /usr/local/bin/refresh-llm-wiki-index.sh
+install -m 0755 "$SCRIPT_DIR/scripts/mirror-workspace.sh" /usr/local/bin/ai-mirror-workspace
+install -m 0755 "$SCRIPT_DIR/scripts/mirror-workspace.sh" /usr/local/bin/mirror-workspace.sh
+install -m 0755 "$SCRIPT_DIR/scripts/beginner-onboarding.sh" /usr/local/bin/ai-beginner-onboarding
+install -m 0755 "$SCRIPT_DIR/scripts/beginner-onboarding.sh" /usr/local/bin/beginner-onboarding.sh
 
 cat > /usr/local/bin/ai-new-repo <<'EOF'
 #!/usr/bin/env bash
@@ -452,6 +477,9 @@ openspec init . --tools codex >/dev/null 2>&1 || true
 git add .
 git commit -m "Initialize $name" || true
 git remote add origin "git@github.com:$owner/$name.git" 2>/dev/null || true
+if command -v ai-index-refresh >/dev/null 2>&1; then
+  ai-index-refresh --root "$root"
+fi
 echo "Created $path"
 echo "If GitHub is authenticated: gh repo create $owner/$name --private --source . --remote origin --push"
 EOF

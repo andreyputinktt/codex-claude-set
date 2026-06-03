@@ -30,6 +30,12 @@ Prefer script-first skills. Deterministic, loosely coupled scripts should do the
 repeatable work; `SKILL.md` should stay compact and say when to use the script,
 what inputs and outputs it accepts, and what safety boundaries apply.
 
+Target skill shape: short trigger/prompt in `SKILL.md` plus one or more
+deterministic scripts for repeatable mechanics. The prompt should tell the agent
+when to use the tool and what boundaries apply, not replace software with long
+procedural prose. If a step can be executed unambiguously by code, move it into
+a CLI/script with verifiable inputs and outputs.
+
 Prefer small CLI tools with `--dry-run`, `--json`, explicit env loading, clear
 exit codes, and tests. Do not turn skills into long prose docs when repeatable
 mechanics can live in a bundled script.
@@ -115,6 +121,17 @@ belong in separate files only when actually useful.
 Minimize folders. Create a folder only when it owns logic, data, or docs that
 need a separate README.
 
+Use deterministic helpers instead of relying on agent memory:
+
+```bash
+scripts/refresh-llm-wiki-index.sh --root ~/GIT
+ai-index-refresh --root ~/GIT
+```
+
+The command creates missing root/repo llm-wiki files and updates only the
+marker-managed block in the root README. Run it after creating, moving, or
+renaming repos/folders. `ai-new-repo` runs it automatically after bootstrap.
+
 ## Upstream Instruction Refresh
 
 Installed employee environments should periodically refresh their working rules
@@ -166,6 +183,39 @@ New assistant repos default to `GIT/assistants/<name>`.
   thin wrappers only.
 - If the user does not explicitly ask for local Windows execution, use SSH or
   editor Remote SSH into the server and work under `~/GIT`.
+
+Beginner Windows setup starts with:
+
+```powershell
+.\windows\onboarding.ps1
+```
+
+Use `windows/bootstrap.ps1` only when server host/user are already known.
+
+## Beginner Onboarding
+
+Default beginner path for macOS/Linux:
+
+```bash
+scripts/beginner-onboarding.sh
+```
+
+The wizard asks for local starter folder, personal GitHub, optional work Git,
+server choice, SSH access mode, backend preference, and optional provider keys.
+It calls the package, SSH, llm-wiki, mirror, and secret helpers.
+
+For server access only:
+
+```bash
+scripts/prepare-server-access.sh --host <host> --user <linux-user> --kind kt
+scripts/prepare-server-access.sh --host <host> --user <linux-user> --kind personal
+```
+
+For local/server starter folder parity:
+
+```bash
+scripts/mirror-workspace.sh --local-root ~/GIT --server <user>@<host> --remote-root ~/GIT
+```
 
 ## Env
 

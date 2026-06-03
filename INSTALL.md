@@ -1,7 +1,31 @@
 # Install Flow
 
-This file is for the Codex agent that performs setup. The employee normally uses
-[PROMPT.md](PROMPT.md), not this file.
+This file is for the Codex agent that performs setup. The employee normally runs
+`scripts/beginner-onboarding.sh` or uses [PROMPT.md](PROMPT.md), not this file.
+
+## 0. Beginner Local Onboarding
+
+Prefer the script-first path before any server bootstrap:
+
+```bash
+cd codex-claude-set
+scripts/beginner-onboarding.sh
+```
+
+The script checks local packages, creates a strict llm-wiki starter folder,
+prepares SSH access, prints Git provider key instructions, collects optional
+provider secrets through `scripts/set-secret.sh`, and mirrors the starter folder
+shape to the server when SSH works.
+
+If the user cannot run the wizard, perform the same steps manually with:
+
+```bash
+scripts/install-local-prereqs.sh
+scripts/prepare-server-access.sh --host <HOST> --user <USER> --kind kt
+scripts/prepare-server-access.sh --host <HOST> --user <USER> --kind personal
+scripts/refresh-llm-wiki-index.sh --root ~/GIT
+scripts/mirror-workspace.sh --local-root ~/GIT --server <USER>@<HOST>
+```
 
 ## 1. Choose Server
 
@@ -16,17 +40,26 @@ Collect:
 - OpenAI or Claude login/email to derive a personal default Linux username;
 - target Linux username, if explicitly different from that default;
 - whether this is KT-managed;
-- auth method.
+- auth method;
+- local starter folder path;
+- personal GitHub and optional work Git provider;
+- optional agent backend preference: Codex/Claude only, Hermes, OpenClaw, or
+  both;
+- optional OpenAI, Anthropic/Claude, and Gemini API keys.
 
 KT-managed:
 
-- generate or reuse an SSH public key locally;
+- run `scripts/prepare-server-access.sh --kind kt` to generate or reuse an SSH
+  public key locally;
 - give the Timofeev message from `README.md`;
 - wait for access.
 
 Non-KT:
 
 - password auth is OK for first bootstrap;
+- run `scripts/prepare-server-access.sh --kind personal`;
+- if password SSH works, install the key and verify a second key-based login;
+- ask whether to disable password SSH after key verification;
 - configure server keepalive;
 - generate account SSH keys during bootstrap;
 - recommend key-only SSH after verification.
@@ -241,6 +274,18 @@ The script asks for the root `GIT/` folder, offers to create the llm-wiki folder
 and README skeleton, stores default server/login/mail notes, collects
 OpenAI/Telegram/Anthropic/Gemini/GitLab secrets through `ai-set-secret`, and
 prints GitHub/GitLab SSH key instructions.
+
+After any repo/folder change, keep the index deterministic:
+
+```bash
+ai-index-refresh --root ~/GIT
+```
+
+For local/server starter folder parity:
+
+```bash
+ai-mirror-workspace --local-root ~/GIT --server <USER>@<HOST> --remote-root ~/GIT
+```
 
 ## 11. Ongoing Rule Refresh
 

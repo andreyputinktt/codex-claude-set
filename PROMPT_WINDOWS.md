@@ -8,6 +8,8 @@ Goal:
 
 - Windows has Git, OpenSSH Client, PowerShell 7, Windows Terminal, Cursor/VS
   Code, Node.js LTS, and local Codex CLI.
+- Windows has a starter `GIT` folder with README/DEV/AGENTS/CLAUDE/llm-wiki
+  files matching the server workspace contract.
 - SSH profile `ai-server` is configured with stable keepalive.
 - `ai-shell` opens an interactive shell on the Ubuntu server under `~/GIT`.
 - `codex-server` forwards Codex commands to the Ubuntu server.
@@ -16,25 +18,31 @@ Goal:
 
 First ask me:
 
-1. Server IP/hostname.
-2. Linux username on the server. If I did not choose one, derive it from my
+1. Starter folder path on Windows. Default `%USERPROFILE%\GIT`.
+2. Server type: KT `ai4u.kt.team`, personal Timeweb/other Ubuntu server, or no
+   server yet.
+3. Server IP/hostname if not default KT.
+4. Linux username on the server. If I did not choose one, derive it from my
    OpenAI or Claude login/email, for example `ivan.petrov@example.com` becomes
    `ivan-petrov`. Do not use generic names such as `ai`.
-3. Whether I already have an SSH key for this server.
-4. Whether to install Cursor, VS Code, or both.
+5. Whether I already have an SSH key for this server.
+6. Whether to configure personal GitHub.
+7. Whether to install Cursor, VS Code, or both.
 
 Implementation:
 
-1. Run `windows/bootstrap.ps1` with the server host and user.
-2. If SSH access is not yet available, print the generated public key and tell
+1. Run `windows/onboarding.ps1`.
+2. If server host/user are already known and only station setup is needed, run
+   `windows/bootstrap.ps1` with the server host and user.
+3. If SSH access is not yet available, print the generated public key and tell
    me where to add it.
-3. Verify:
+4. Verify:
    - `ssh ai-server "echo SSH_OK"`
    - `ssh ai-server "cd ~/GIT && pwd"`
    - `ssh ai-server "codex --version"`
    - `ssh ai-server "codex login status"`
    - `ssh ai-server "codex app-server daemon version"`
-4. Explain daily use:
+5. Explain daily use:
    - `ai-shell` for server shell;
    - `codex-server ...` for forwarding Codex to the server;
    - Cursor/VS Code Remote SSH into `ai-server:~/GIT`.

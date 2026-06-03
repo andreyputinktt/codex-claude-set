@@ -4,16 +4,23 @@ Bootstrap kit for a KT-style personal AI server: Codex CLI, Claude Code,
 Hermes Agent, OpenSpec, caveman lite, Telegram control bot, Git automation,
 shared env files, ChatGPT remote access, and optional Windows station setup.
 
-This repo is designed for one workflow: an employee opens Codex locally, pastes
-the prompt from [PROMPT.md](PROMPT.md), answers the questions, and lets Codex
-finish the server setup end to end.
+This repo is designed for one beginner-safe workflow: a user opens Codex or
+Claude locally, runs the onboarding wizard or gives the agent
+[PROMPT.md](PROMPT.md), answers concrete questions, follows account/server
+links, and reaches a working local+server AI workspace.
 
 Additional reusable scenarios live in [recipes/](recipes/), including
 [recipes/mentor-bot.md](recipes/mentor-bot.md) for a personal mentor bot with
 profile, people records, diaries, voice transcription, and Telegram control.
+There is also [recipes/relationship-warmer.md](recipes/relationship-warmer.md)
+for a channel-agnostic relationship warmer over Telegram/Gmail plus Telegram
+birthday congratulations through first-person userapi.
 
 ## What It Builds
 
+- Beginner onboarding for macOS/Linux and Windows: local package checks, SSH
+  key preparation, Git provider guidance, provider API key prompts, starter
+  workspace creation, and server mirror.
 - Ubuntu server user with sudo and stable SSH keepalive.
 - Codex CLI with `sandbox_mode = "danger-full-access"`,
   `approval_policy = "never"`, and explicit
@@ -25,6 +32,8 @@ profile, people records, diaries, voice transcription, and Telegram control.
   scrapers.
 - `GIT/` root with `README.md`, `DEV.md`, `AGENTS.md`, `CLAUDE.md`,
   `llm-wiki.md`, shared `.env-*` convention, and minimal folder discipline.
+- Matching starter folder shape on the computer and on the server, maintained by
+  `ai-index-refresh` and `ai-mirror-workspace`.
 - GitHub/GitLab account-level SSH key flow, not one repo deploy keys.
 - Safe local secret setter for root shared `.env-*` files and project `.env`
   files, with upload to the Ubuntu server over SSH.
@@ -43,27 +52,40 @@ profile, people records, diaries, voice transcription, and Telegram control.
 
 ## Fast Start
 
-1. If this is a new Ubuntu server, first ask Codex to check SSH stability before
-   the main setup. Ubuntu defaults often drop long SSH sessions, so verify or
-   configure keepalive before running the installer.
-2. Open [PROMPT.md](PROMPT.md).
-3. Paste the whole prompt into Codex.
-4. Give Codex:
-   - server IP or hostname;
-   - OpenAI or Claude login/email for a personal default Linux username;
-   - Linux user login to create/use, if different from that default;
-   - auth type: password now, SSH key request, or existing SSH key;
-   - whether the server is KT-managed;
-   - Git provider choices: GitHub, personal GitLab, KT GitLab, or several;
-   - Telegram bot token and owner chat id, if Telegram control is needed;
-   - OpenAI API key, if voice/audio transcription is needed.
-5. Codex copies this repo to the server and runs:
+### macOS / Linux
+
+If Codex or Claude is already installed locally, paste this into it:
+
+```text
+Follow codex-claude-set. Run scripts/beginner-onboarding.sh and guide me through
+every question until my local and server AI workspace is ready.
+```
+
+Or run directly:
+
+```bash
+cd codex-claude-set
+scripts/beginner-onboarding.sh
+```
+
+The wizard asks for:
+
+- personal GitHub and optional work Git provider;
+- server type: KT `ai4u.kt.team`, personal Timeweb/other Ubuntu server, or no
+  server yet;
+- server IP/hostname and Linux username;
+- whether password SSH is available and whether to switch to key-only SSH;
+- local starter folder, mirrored server folder, and strict llm-wiki index;
+- optional Hermes/OpenClaw backend preference;
+- OpenAI, Anthropic/Claude, and Gemini API keys through hidden secret prompts.
+
+When SSH works, Codex copies this repo to the server and runs:
 
 ```bash
 sudo bash bootstrap.sh
 ```
 
-6. Codex finishes by running:
+Then Codex finishes by running:
 
 ```bash
 codex login --device-auth
@@ -76,10 +98,10 @@ ai-codex-health
 Then the user opens the device link, enters the code, and connects from
 ChatGPT/Codex using the same ChatGPT account.
 
-7. Codex continues with [POST_INSTALL.md](POST_INSTALL.md): helps create a
-   Telegram bot in BotFather and offers to design another assistant bot.
+Codex continues with [POST_INSTALL.md](POST_INSTALL.md): helps create a Telegram
+bot in BotFather and offers to design another assistant bot.
 
-8. For first-time user setup, run:
+For first-time user setup on the server, run:
 
 ```bash
 ai-first-run
@@ -88,6 +110,25 @@ ai-first-run
 It guides root-folder organization, README skeletons, default server/login,
 OpenAI/Anthropic/Gemini/Telegram secrets, mail accounts, GitHub SSH, and
 corporate GitLab access.
+
+### Windows
+
+Run the Windows beginner wrapper:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+.\windows\onboarding.ps1
+```
+
+It creates the same local starter folder contract, configures Windows as a thin
+station, creates/reuses SSH keys, and then uses Remote SSH / `ai-shell` /
+`codex-server` to work on the Ubuntu server.
+
+### Manual Agent Prompt
+
+If the user cannot run scripts directly, open [PROMPT.md](PROMPT.md), paste it
+into Codex/Claude, and answer the questions. The prompt instructs the agent to
+use the same scripts instead of improvising.
 
 ## Bundled Skills
 
@@ -110,7 +151,7 @@ Telegram, OpenSpec, and long-running work.
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-.\windows\bootstrap.ps1 -ServerHost <SERVER_IP_OR_HOST> -ServerUser <LINUX_USER>
+.\windows\onboarding.ps1
 ```
 
 Then use:

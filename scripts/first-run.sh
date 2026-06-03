@@ -172,6 +172,11 @@ mkdir -p "$GIT_ROOT"
 ask_yes_no REORGANIZE "Create/reorganize the root folder skeleton and README files according to llm-wiki?" "yes"
 if [[ "$REORGANIZE" == "yes" ]]; then
   create_workspace_skeleton "$GIT_ROOT"
+  if command -v ai-index-refresh >/dev/null 2>&1; then
+    ai-index-refresh --root "$GIT_ROOT"
+  elif [[ -x "$(dirname "${BASH_SOURCE[0]}")/refresh-llm-wiki-index.sh" ]]; then
+    "$(dirname "${BASH_SOURCE[0]}")/refresh-llm-wiki-index.sh" --root "$GIT_ROOT"
+  fi
 fi
 
 LOCAL_ENV="$GIT_ROOT/.env-local"

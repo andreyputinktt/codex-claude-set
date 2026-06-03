@@ -15,17 +15,28 @@ Open PowerShell and run:
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-.\windows\bootstrap.ps1 -ServerHost <SERVER_IP_OR_HOST> -ServerUser <LINUX_USER>
+.\windows\onboarding.ps1
 ```
 
-If the server user is not known yet, use the OpenAI or Claude login/email to pick
-a personal Linux username. For example, `ivan.petrov@example.com` becomes
-`ivan-petrov`. Avoid generic users such as `ai`.
+The onboarding wrapper asks for the local starter folder, personal GitHub, server
+type, server host, and Linux username. If the server user is not known yet, use
+the OpenAI or Claude login/email to pick a personal Linux username. For example,
+`ivan.petrov@example.com` becomes `ivan-petrov`. Avoid generic users such as
+`ai`.
+
+Use the lower-level station bootstrap only when the server host/user are already
+known:
+
+```powershell
+.\windows\bootstrap.ps1 -ServerHost <SERVER_IP_OR_HOST> -ServerUser <LINUX_USER>
+```
 
 ## What The Script Does
 
 - Installs or checks Git for Windows, PowerShell 7, Windows Terminal, OpenSSH,
   Node.js LTS, local Codex CLI, and Cursor/VS Code when available.
+- Creates the local starter `GIT` folder with README/DEV/AGENTS/CLAUDE/llm-wiki
+  files.
 - Creates or reuses an SSH key under `%USERPROFILE%\.ssh`.
 - Writes a stable SSH profile named `ai-server`.
 - Adds `ServerAliveInterval`, `ServerAliveCountMax`, and `TCPKeepAlive`.
