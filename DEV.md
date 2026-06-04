@@ -129,8 +129,10 @@ ai-index-refresh --root ~/GIT
 ```
 
 The command creates missing root/repo llm-wiki files and updates only the
-marker-managed block in the root README. Run it after creating, moving, or
-renaming repos/folders. `ai-new-repo` runs it automatically after bootstrap.
+marker-managed block in the root README. The generated block is one folder index
+table with description, use-case hints, and bounded Codex session hints from the
+latest local session logs. Run it after creating, moving, or renaming
+repos/folders. `ai-new-repo` runs it automatically after bootstrap.
 
 ## Upstream Instruction Refresh
 

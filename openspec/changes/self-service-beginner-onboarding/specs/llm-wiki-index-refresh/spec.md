@@ -10,13 +10,18 @@ files according to the llm-wiki contract.
 - **THEN** it creates the required llm-wiki files and standard top-level folders
 
 ### Requirement: Managed Root Index
-The system SHALL maintain a marker-managed root README index of top-level folders
-and child repositories.
+The system SHALL maintain a single marker-managed root README index table for
+top-level folders and nested child repositories.
 
 #### Scenario: Existing README has custom content
 - **WHEN** the refresher runs on a workspace with an existing root README
 - **THEN** it preserves custom content outside the managed marker block and
   updates only the generated index block
+
+#### Scenario: Codex session hints
+- **WHEN** recent local Codex session logs mention indexed folders
+- **THEN** the generated index includes bounded session-path hints for those
+  folders without copying chat contents into README
 
 ### Requirement: Repo-Level Agent Files
 The system SHALL create missing `README.md`, `AGENTS.md`, `CLAUDE.md`, `DEV.md`,

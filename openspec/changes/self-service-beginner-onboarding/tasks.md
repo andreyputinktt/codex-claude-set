@@ -5,6 +5,8 @@
       password-first key install, and optional key-only hardening.
 - [x] Add llm-wiki index refresher for root docs, folder README files, repo docs,
       and managed README index blocks.
+- [x] Collapse generated README index blocks into one folder table and include
+      bounded Codex session hints for faster folder lookup.
 - [x] Add workspace mirror helper for secret-safe local-to-server starter sync.
 - [x] Add macOS/Linux beginner onboarding wizard that orchestrates prerequisites,
       llm-wiki refresh, server access, workspace mirror, provider secrets, and
