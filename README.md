@@ -32,6 +32,9 @@ birthday congratulations through first-person userapi.
   scrapers.
 - `GIT/` root with `README.md`, `DEV.md`, `AGENTS.md`, `CLAUDE.md`,
   `llm-wiki.md`, shared `.env-*` convention, and minimal folder discipline.
+- Generic llm-wiki discipline: root README chooses the folder, each folder
+  README owns its details and dependencies, `AGENTS.md`/`CLAUDE.md` stay thin
+  pointers, and no root-level thematic routing or dependency graph is generated.
 - Matching starter folder shape on the computer and on the server, maintained by
   `ai-index-refresh` and `ai-mirror-workspace`.
 - GitHub/GitLab account-level SSH key flow, not one repo deploy keys.

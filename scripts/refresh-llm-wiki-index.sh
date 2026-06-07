@@ -77,12 +77,14 @@ ensure_root_files() {
   write_file_if_missing "$ROOT/README.md" \
     "# Repository Index" \
     "" \
-    "Root workspace for AI-assisted work. Start here, then read DEV.md, then the target repo README."
+    "Root workspace for AI-assisted work. Start here, then read DEV.md when relevant, then the target folder README."
 
   write_file_if_missing "$ROOT/DEV.md" \
     "# Development And Server Rules" \
     "" \
-    "Use README files as indexes. Use OpenSpec for code, behavior, deploy, integration, prompt, and workflow changes. Keep secrets in ignored .env files."
+    "Use README files as indexes. Root README chooses the folder; child README files own details and dependencies. Use OpenSpec for code, behavior, deploy, integration, prompt, and workflow changes. Keep secrets in ignored .env files." \
+    "" \
+    "If git status shows uncommitted changes, run ./deploy-server.py immediately. If the script is missing, report that the workspace is missing its deploy boundary."
 
   write_file_if_missing "$ROOT/AGENTS.md" \
     "# Agent guide" \
@@ -96,7 +98,7 @@ ensure_root_files() {
   write_file_if_missing "$ROOT/llm-wiki.md" \
     "# LLM Wiki" \
     "" \
-    "Read root README, then DEV, then the target repo README. One fact lives in one place. Keep README files as indexes, not diaries."
+    "Read root README, then DEV when relevant, then the target folder README. Root README chooses the folder and does not duplicate child internals or cross-repo dependency graphs. One fact lives in one place. Keep README files as indexes, not diaries. Keep AGENTS.md and CLAUDE.md as thin pointers."
 
   write_file_if_missing "$ROOT/.gitignore" \
     ".env" \
@@ -282,7 +284,7 @@ write_managed_block() {
     echo "<!-- ai-index:start -->"
     echo "## Workspace Index"
     echo
-    echo "Managed by \`ai-index-refresh\`. Edit descriptions in child README files; rerun the command to refresh this block."
+    echo "Managed by \`ai-index-refresh\`. Root README chooses the folder; child README files own details and dependencies. Rerun the command to refresh this block."
     echo "Use the cases column as search hints. Codex hints scan the latest ${CODEX_SESSION_LIMIT} session logs and show only session paths where a folder was already mentioned."
     echo
     echo "| Folder | Description | Cases | Codex hints |"

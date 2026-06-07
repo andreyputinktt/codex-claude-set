@@ -23,7 +23,8 @@ Goal: make the target server work like Andrey's AI automation server:
   Python, Docker, git, gh, audio/OCR/PDF/dev packages installed.
 - `GIT/` root configured with README/DEV/AGENTS/CLAUDE/llm-wiki principles.
 - `ai-index-refresh` is used so the root README index and repo/folder llm-wiki
-  files are updated automatically instead of relying on agent memory.
+  files are updated automatically instead of relying on agent memory. Root
+  README chooses the folder; child README files own details and dependencies.
 - Hermes and/or OpenClaw are connected if I choose them; otherwise Codex/Claude
   are enough for the first setup.
 - `caveman lite` is the default communication style; I should not need to ask.
@@ -186,6 +187,7 @@ ai-codex-remote-status
    - It should guide OpenAI, Telegram, Claude/Anthropic, optional Gemini, mail,
      personal GitHub SSH, and corporate GitLab setup.
    - Run `ai-index-refresh --root ~/GIT` after setup and after any new repo.
+   - If `git status` shows uncommitted changes in a workspace, run `./deploy-server.py` immediately. If the script is missing, report that the workspace is missing its deploy boundary.
 14. Run the post-install Telegram onboarding:
    - If I did not provide a Telegram bot token, help me create one through
      BotFather.

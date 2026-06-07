@@ -223,14 +223,20 @@ chmod 600 "$USER_HOME/.codex/config.toml"
 cat > "$GIT_ROOT/README.md" <<EOF
 # Repository Index
 
-Root workspace for AI-assisted work. Read this file first, then \`DEV.md\`,
-then the target repo README.
+Root workspace for AI-assisted work. Read this file first, then \`DEV.md\`
+when relevant, then the target folder README.
 
 ## Principles
 
 - Loose coupling: each service or assistant is its own repo.
 - README files are indexes, not diaries.
+- Root README chooses the folder; child README files own details and
+  dependencies.
+- Keep \`AGENTS.md\` and \`CLAUDE.md\` as thin pointers, not knowledge bases.
 - OpenSpec is automatic for behavior/code/deploy changes.
+- If \`git status\` shows uncommitted changes, run \`./deploy-server.py\`
+  immediately. If the script is missing, report that the workspace is missing
+  its deploy boundary.
 - Run \`ai-index-refresh --root ~/GIT\` after repo/folder changes; \`ai-new-repo\`
   runs it automatically.
 - Caveman lite is the default response style.
@@ -363,9 +369,11 @@ EOF
 cat > "$GIT_ROOT/llm-wiki.md" <<'EOF'
 # LLM Wiki
 
-Start with root README, then DEV, then the target repo README. Every repo keeps
-README.md, AGENTS.md, CLAUDE.md, and DEV.md when needed. One fact lives in one
-place. Keep folders minimal.
+Start with root README, then DEV when relevant, then the target folder README.
+Root README chooses the folder and does not duplicate child internals or
+cross-repo dependency graphs. Every repo keeps README.md, AGENTS.md, CLAUDE.md,
+and DEV.md when needed. AGENTS.md and CLAUDE.md stay thin pointers. One fact
+lives in one place. Keep folders minimal.
 EOF
 
 cat > "$GIT_ROOT/AGENTS.md" <<'EOF'
@@ -462,7 +470,9 @@ CLAUDE
 cat > DEV.md <<'DEV'
 # Development
 
-Use OpenSpec for behavior/code/deploy changes. Keep secrets out of git.
+Use OpenSpec for behavior/code/deploy changes. Keep secrets out of git. If git
+status shows uncommitted changes, run ./deploy-server.py immediately. If the
+script is missing, report that the workspace is missing its deploy boundary.
 DEV
 cat > .gitignore <<'IGNORE'
 .env

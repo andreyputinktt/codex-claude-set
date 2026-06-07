@@ -115,11 +115,24 @@ Every real repo has:
 - `CLAUDE.md` containing `@README.md`;
 - `DEV.md` when there are development, deploy, env, or system rules.
 
+Root README answers "which folder should I open first". After selecting a
+folder, read that folder's `README.md`; the root README must not duplicate child
+internals, keep a cross-repo dependency graph, or create separate thematic
+routing sections. Put generic routing hints in the single folder index table.
+
+Dependencies live at the owning level. If one repo depends on another context,
+brand, service, or data source, document that in the consuming/owning repo
+README, not in the root workspace index.
+
 README is an index, not a diary. Plans, meeting notes, transcripts, and history
 belong in separate files only when actually useful.
 
 Minimize folders. Create a folder only when it owns logic, data, or docs that
 need a separate README.
+
+Keep `AGENTS.md` and `CLAUDE.md` as short pointers to README/DEV. Durable facts,
+preferences, routing, and operating rules belong in README/DEV at the relevant
+level.
 
 Use deterministic helpers instead of relying on agent memory:
 
@@ -175,6 +188,9 @@ New assistant repos default to `GIT/assistants/<name>`.
 - Server may autosync generated non-secret artifacts.
 - Prefer account-level SSH keys for Git providers; deploy keys only when repo
   boundaries require them.
+- If `git status` shows uncommitted changes, run `./deploy-server.py`
+  immediately. If the script is missing, report that the workspace is missing
+  its deploy boundary.
 
 ## Windows Station
 

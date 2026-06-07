@@ -100,7 +100,7 @@ create_workspace_skeleton() {
   write_if_missing "$root/README.md" \
     "# Repository Index" \
     "" \
-    "Root workspace for AI-assisted work. Start here, then read DEV.md, then the target folder or repo README." \
+    "Root workspace for AI-assisted work. Start here, then read DEV.md when relevant, then the target folder README." \
     "" \
     "## Folders" \
     "" \
@@ -117,7 +117,9 @@ create_workspace_skeleton() {
   write_if_missing "$root/DEV.md" \
     "# Development And Server Rules" \
     "" \
-    "Keep secrets in ignored .env files. Use README files as indexes. Use OpenSpec for code, behavior, deploy, integration, prompt, and workflow changes."
+    "Keep secrets in ignored .env files. Use README files as indexes. Root README chooses the folder; child README files own details and dependencies. Use OpenSpec for code, behavior, deploy, integration, prompt, and workflow changes." \
+    "" \
+    "If git status shows uncommitted changes, run ./deploy-server.py immediately. If the script is missing, report that the workspace is missing its deploy boundary."
   write_if_missing "$root/AGENTS.md" \
     "# Agent guide" \
     "@README.md" \
@@ -127,7 +129,7 @@ create_workspace_skeleton() {
   write_if_missing "$root/llm-wiki.md" \
     "# LLM Wiki" \
     "" \
-    "Read root README, then DEV, then the target repo README. One fact lives in one place. Keep folders minimal and add README files to folders that own logic or data."
+    "Read root README, then DEV when relevant, then the target folder README. Root README chooses the folder and does not duplicate child internals or cross-repo dependency graphs. One fact lives in one place. Keep folders minimal and add README files to folders that own logic or data. Keep AGENTS.md and CLAUDE.md as thin pointers."
   write_if_missing "$root/.gitignore" \
     ".env" \
     ".env-*" \

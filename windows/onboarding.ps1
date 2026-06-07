@@ -90,7 +90,7 @@ function Initialize-LlmWikiRoot {
   Write-IfMissing (Join-Path $Root "README.md") @(
     "# Repository Index",
     "",
-    "Root workspace for AI-assisted work. Start here, then read DEV.md, then the target repo README.",
+    "Root workspace for AI-assisted work. Start here, then read DEV.md when relevant, then the target folder README.",
     "",
     "<!-- ai-index:start -->",
     "## Workspace Index",
@@ -101,14 +101,16 @@ function Initialize-LlmWikiRoot {
   Write-IfMissing (Join-Path $Root "DEV.md") @(
     "# Development And Server Rules",
     "",
-    "Use README files as indexes. Use OpenSpec for code, behavior, deploy, integration, prompt, and workflow changes. Keep secrets in ignored .env files."
+    "Use README files as indexes. Root README chooses the folder; child README files own details and dependencies. Use OpenSpec for code, behavior, deploy, integration, prompt, and workflow changes. Keep secrets in ignored .env files.",
+    "",
+    "If git status shows uncommitted changes, run ./deploy-server.py immediately. If the script is missing, report that the workspace is missing its deploy boundary."
   )
   Write-IfMissing (Join-Path $Root "AGENTS.md") @("# Agent guide", "@README.md", "", "Dev rules: [DEV.md](DEV.md).")
   Write-IfMissing (Join-Path $Root "CLAUDE.md") @("@README.md")
   Write-IfMissing (Join-Path $Root "llm-wiki.md") @(
     "# LLM Wiki",
     "",
-    "Read root README, then DEV, then the target repo README. One fact lives in one place."
+    "Read root README, then DEV when relevant, then the target folder README. Root README chooses the folder and does not duplicate child internals or cross-repo dependency graphs. One fact lives in one place. Keep AGENTS.md and CLAUDE.md as thin pointers."
   )
   Write-IfMissing (Join-Path $Root ".gitignore") @(".env", ".env-*", "!.env.example", "node_modules/", ".venv/", "venv/", "__pycache__/", "*.log", "logs/", "tmp/", ".cache/")
 }

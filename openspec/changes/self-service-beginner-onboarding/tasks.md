@@ -7,6 +7,10 @@
       and managed README index blocks.
 - [x] Collapse generated README index blocks into one folder table and include
       bounded Codex session hints for faster folder lookup.
+- [x] Add generic llm-wiki principles: root index chooses the folder, child
+      README owns details/dependencies, AGENTS/CLAUDE stay thin, no thematic
+      root routing blocks, and dirty workspaces run `./deploy-server.py` or
+      report the missing deploy boundary.
 - [x] Add workspace mirror helper for secret-safe local-to-server starter sync.
 - [x] Add macOS/Linux beginner onboarding wizard that orchestrates prerequisites,
       llm-wiki refresh, server access, workspace mirror, provider secrets, and
