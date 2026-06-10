@@ -17,6 +17,7 @@ Options:
   --dry-run               Print planned writes without changing files.
   --check                 Fail if changes would be needed.
   --no-standard-folders   Do not create starter folders.
+  --no-ignore-nested-git  Do not update root .gitignore for nested Git repos.
   --codex-session-limit N Latest Codex session logs to scan for folder hints.
 EOF
 }
@@ -112,7 +113,27 @@ ensure_root_files() {
     "logs/" \
     "tmp/" \
     ".cache/" \
-    ".DS_Store"
+    ".DS_Store" \
+    "sloy-KT/"
+}
+
+ensure_nested_git_ignores() {
+  [[ "$IGNORE_NESTED_GIT" -eq 1 ]] || return 0
+  local helper_args=("--root" "$ROOT" "--extra" "sloy-KT")
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    helper_args+=("--dry-run")
+  fi
+  if [[ "$CHECK_ONLY" -eq 1 ]]; then
+    helper_args+=("--check")
+  fi
+
+  if [[ -x "$IGNORE_NESTED_GIT_SCRIPT" ]]; then
+    "$IGNORE_NESTED_GIT_SCRIPT" "${helper_args[@]}"
+  elif [[ -f "$IGNORE_NESTED_GIT_SCRIPT" ]]; then
+    bash "$IGNORE_NESTED_GIT_SCRIPT" "${helper_args[@]}"
+  elif [[ "$CHECK_ONLY" -eq 1 ]]; then
+    die "nested git ignore helper not found: $IGNORE_NESTED_GIT_SCRIPT"
+  fi
 }
 
 ensure_standard_folders() {
@@ -130,6 +151,17 @@ ensure_standard_folders() {
 is_ignored_top_level_dir() {
   case "$1" in
     .git|.codex|.claude|node_modules|venv|.venv|__pycache__|tmp|logs|.cache|dist|build)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_readonly_workspace_dir() {
+  case "$1" in
+    sloy-KT|sloy-KT/*)
       return 0
       ;;
     *)
@@ -157,6 +189,7 @@ collect_repos() {
     [[ "$repo" == "$ROOT" ]] && continue
     rel="${repo#"$ROOT"/}"
     [[ "$rel" == "$repo" ]] && continue
+    is_readonly_workspace_dir "$rel" && continue
     case "$rel" in
       .git|.git/*|node_modules/*|.cache/*|tmp/*|logs/*)
         continue
@@ -168,14 +201,9 @@ collect_repos() {
 
 collect_index_entries() {
   INDEX_ENTRIES=()
-  local folder rel top
+  local folder
   for folder in "${TOP_FOLDERS[@]+"${TOP_FOLDERS[@]}"}"; do
     INDEX_ENTRIES+=("$folder")
-  done
-  for rel in "${REPOS[@]+"${REPOS[@]}"}"; do
-    top="${rel%%/*}"
-    [[ "$rel" == "$top" ]] && continue
-    INDEX_ENTRIES+=("$rel")
   done
 }
 
@@ -350,9 +378,12 @@ update_root_readme_block() {
 }
 
 ROOT="${GIT_ROOT:-$HOME/GIT}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+IGNORE_NESTED_GIT_SCRIPT="${AI_IGNORE_NESTED_GIT_SCRIPT:-$SCRIPT_DIR/ignore-nested-git-repos.sh}"
 DRY_RUN=0
 CHECK_ONLY=0
 CREATE_STANDARD_FOLDERS=1
+IGNORE_NESTED_GIT=1
 CODEX_SESSION_LIMIT=30
 CHANGES=0
 TOP_FOLDERS=()
@@ -379,6 +410,10 @@ while [[ $# -gt 0 ]]; do
       CREATE_STANDARD_FOLDERS=0
       shift
       ;;
+    --no-ignore-nested-git)
+      IGNORE_NESTED_GIT=0
+      shift
+      ;;
     --codex-session-limit)
       CODEX_SESSION_LIMIT="${2:-}"
       shift 2
@@ -397,6 +432,7 @@ done
 ROOT="$(mkdir -p "$ROOT" && cd "$ROOT" && pwd)"
 
 ensure_root_files
+ensure_nested_git_ignores
 ensure_standard_folders
 collect_top_folders
 collect_repos

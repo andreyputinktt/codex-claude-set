@@ -13,21 +13,30 @@ Goal:
 - SSH profile `ai-server` is configured with stable keepalive.
 - `ai-shell` opens an interactive shell on the Ubuntu server under `~/GIT`.
 - `codex-server` forwards Codex commands to the Ubuntu server.
+- The Ubuntu server uses `ai-boilerplate-refresh.timer` to refresh
+  `codex-claude-set` instructions weekly; Windows remains only a station.
 - Repos, secrets, `.env-*`, services, agents, daemon state, and long-running
   tasks remain on the Ubuntu server.
 
 First ask me:
 
 1. Starter folder path on Windows. Default `%USERPROFILE%\GIT`.
-2. Server type: KT `ai4u.kt.team`, personal Timeweb/other Ubuntu server, or no
+2. Ты сотрудник КТ?
+3. If yes, ask this exact project-context setup request:
+
+```text
+Сходите в https://sync-service.osno-va.com/ и нажмите кнопку "Подключить агента" и дайте последнюю инструкцию установки в этот чат.
+```
+
+4. Server type: KT `ai4u.kt.team`, personal Timeweb/other Ubuntu server, or no
    server yet.
-3. Server IP/hostname if not default KT.
-4. Linux username on the server. If I did not choose one, derive it from my
+5. Server IP/hostname if not default KT.
+6. Linux username on the server. If I did not choose one, derive it from my
    OpenAI or Claude login/email, for example `ivan.petrov@example.com` becomes
    `ivan-petrov`. Do not use generic names such as `ai`.
-5. Whether I already have an SSH key for this server.
-6. Whether to configure personal GitHub.
-7. Whether to install Cursor, VS Code, or both.
+7. Whether I already have an SSH key for this server.
+8. Whether to configure personal GitHub.
+9. Whether to install Cursor, VS Code, or both.
 
 Implementation:
 

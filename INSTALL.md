@@ -24,6 +24,7 @@ scripts/install-local-prereqs.sh
 scripts/prepare-server-access.sh --host <HOST> --user <USER> --kind kt
 scripts/prepare-server-access.sh --host <HOST> --user <USER> --kind personal
 scripts/refresh-llm-wiki-index.sh --root ~/GIT
+scripts/ignore-nested-git-repos.sh --root ~/GIT
 scripts/mirror-workspace.sh --local-root ~/GIT --server <USER>@<HOST>
 ```
 
@@ -38,6 +39,7 @@ Collect:
 
 - IP or hostname;
 - OpenAI or Claude login/email to derive a personal default Linux username;
+- answer to "Ты сотрудник КТ?";
 - target Linux username, if explicitly different from that default;
 - whether this is KT-managed;
 - auth method;
@@ -48,6 +50,13 @@ Collect:
 - optional OpenAI, Anthropic/Claude, and Gemini API keys.
 
 KT-managed:
+
+- use KT defaults from `config/kt.env` / `config/kt.sh`;
+- ask the employee to connect project context through sync-service:
+
+```text
+Сходите в https://sync-service.osno-va.com/ и нажмите кнопку "Подключить агента" и дайте последнюю инструкцию установки в этот чат.
+```
 
 - run `scripts/prepare-server-access.sh --kind kt` to generate or reuse an SSH
   public key locally;
@@ -77,6 +86,10 @@ If only root is available:
 rsync -az --exclude .git ./codex-claude-set/ root@<HOST>:/tmp/codex-claude-set/
 ssh root@<HOST> 'bash /tmp/codex-claude-set/bootstrap.sh'
 ```
+
+Bootstrap installs `ai-boilerplate-refresh.timer`. The weekly service pulls the
+boilerplate repo, reinstalls bundled helper scripts, runs `ai-index-refresh`,
+updates nested Git ignores, and writes `~/GIT/UPSTREAM-INSTRUCTIONS.md`.
 
 ## 3. Bootstrap Answers
 
@@ -289,10 +302,22 @@ ai-mirror-workspace --local-root ~/GIT --server <USER>@<HOST> --remote-root ~/GI
 
 ## 11. Ongoing Rule Refresh
 
-For employee environments deployed from this kit, add a standing maintenance
-rule: at least monthly, and before large setup or infrastructure work, check the
-upstream `codex-claude-set` repository for updated `README.md`, `DEV.md`,
-`PROMPT.md`, `INSTALL.md`, and relevant recipes. Apply relevant rule changes to
-the local server `GIT/` docs.
+For employee environments deployed from this kit, use the installed weekly
+updater:
+
+```bash
+systemctl status ai-boilerplate-refresh.timer --no-pager
+sudo systemctl start ai-boilerplate-refresh.service
+cat ~/GIT/UPSTREAM-INSTRUCTIONS.md
+```
+
+The updater pulls upstream `codex-claude-set`, reinstalls helper scripts,
+refreshes the workspace index, updates nested Git ignores, and writes the
+current upstream instruction pointer. Agents should read the current upstream
+`README.md`, `DEV.md`, `PROMPT.md`, `INSTALL.md`, and relevant recipes before
+large setup, infrastructure, or agent-policy work.
+
+Do not blindly overwrite local `GIT/README.md` or `GIT/DEV.md`; copy only
+relevant durable behavior/rule changes. Local server facts stay in local docs.
 
 Skip this reminder for the upstream author while authoring these rules.

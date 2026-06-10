@@ -27,6 +27,10 @@ birthday congratulations through first-person userapi.
   `[sandbox_workspace_write] network_access = true` fallback.
 - Codex app-server daemon with remote control for ChatGPT mobile/web, plus a
   systemd unit, periodic healthcheck timer, and `ai-codex-health` diagnostics.
+- Weekly boilerplate updater: `ai-boilerplate-refresh.timer` pulls
+  `~/GIT/codex-claude-set`, reinstalls bundled helper scripts, refreshes the
+  workspace index, updates nested Git ignores, and writes
+  `~/GIT/UPSTREAM-INSTRUCTIONS.md`.
 - Claude Code, OpenCode, OpenClaw, Hermes Agent, OpenSpec, skills CLI, Node,
   Python, Docker, audio/OCR/PDF/dev packages, and Chromium for browser-based
   scrapers.
@@ -37,6 +41,9 @@ birthday congratulations through first-person userapi.
   pointers, and no root-level thematic routing or dependency graph is generated.
 - Matching starter folder shape on the computer and on the server, maintained by
   `ai-index-refresh` and `ai-mirror-workspace`.
+- Root `.gitignore` protection for nested Git repositories through
+  `ai-ignore-nested-git-repos`, so child repos are not tracked twice by the
+  parent workspace index.
 - GitHub/GitLab account-level SSH key flow, not one repo deploy keys.
 - Safe local secret setter for root shared `.env-*` files and project `.env`
   files, with upload to the Ubuntu server over SSH.
@@ -74,6 +81,7 @@ scripts/beginner-onboarding.sh
 The wizard asks for:
 
 - personal GitHub and optional work Git provider;
+- whether the user is a KT employee;
 - server type: KT `ai4u.kt.team`, personal Timeweb/other Ubuntu server, or no
   server yet;
 - server IP/hostname and Linux username;
@@ -81,6 +89,14 @@ The wizard asks for:
 - local starter folder, mirrored server folder, and strict llm-wiki index;
 - optional Hermes/OpenClaw backend preference;
 - OpenAI, Anthropic/Claude, and Gemini API keys through hidden secret prompts.
+
+KT-specific defaults live in [config/kt.env](config/kt.env), with bash helper
+formatting in [config/kt.sh](config/kt.sh). For KT employees the wizard also
+asks them to connect project context through OSNO-VA sync-service:
+
+```text
+Сходите в https://sync-service.osno-va.com/ и нажмите кнопку "Подключить агента" и дайте последнюю инструкцию установки в этот чат.
+```
 
 When SSH works, Codex copies this repo to the server and runs:
 
@@ -113,6 +129,13 @@ ai-first-run
 It guides root-folder organization, README skeletons, default server/login,
 OpenAI/Anthropic/Gemini/Telegram secrets, mail accounts, GitHub SSH, and
 corporate GitLab access.
+
+`ai-index-refresh` also checks nested Git repositories and appends their paths to
+the root `.gitignore`. To run that check directly:
+
+```bash
+ai-ignore-nested-git-repos --root ~/GIT
+```
 
 ### Windows
 
@@ -168,6 +191,9 @@ See [WINDOWS.md](WINDOWS.md) and [PROMPT_WINDOWS.md](PROMPT_WINDOWS.md).
 
 ## KT Server Access
 
+KT defaults are configured in [config/kt.env](config/kt.env): AI server host,
+corporate GitLab URL, sync-service URL, and the employee project-context request.
+
 If the target is a KT-managed server, do not ask for a password first. Generate
 or reuse the employee public key and ask Timofeev to add it.
 
@@ -206,10 +232,21 @@ After setup, switch to SSH key only.
 
 ## Updating Local Rules
 
-Employee environments deployed from this kit should periodically check this
-upstream repo for updated rules and copy relevant changes into their local
-server `GIT/` docs. Use at least a monthly cadence, and always refresh before
-large setup, infra, or agent-policy work.
+Employee environments deployed from this kit install a weekly updater:
+
+```bash
+systemctl status ai-boilerplate-refresh.timer --no-pager
+sudo systemctl start ai-boilerplate-refresh.service
+```
+
+The updater pulls `~/GIT/codex-claude-set`, reinstalls bundled helper scripts,
+runs `ai-index-refresh`, updates nested Git ignores, and writes
+`~/GIT/UPSTREAM-INSTRUCTIONS.md`. Agents should read that file and the current
+upstream `README.md`, `DEV.md`, `INSTALL.md`, and relevant recipes before large
+setup, infrastructure, or agent-policy work.
+
+The updater does not overwrite local workspace `README.md` or `DEV.md`; local
+facts stay local.
 
 This does not apply to the upstream author while making the changes.
 

@@ -115,6 +115,8 @@ set_secret_if_wanted() {
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../config/kt.sh
+source "$SCRIPT_DIR/../config/kt.sh"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -147,6 +149,7 @@ fi
 
 ask LOGIN_HINT "Your OpenAI/Claude or work email, used for default Linux login" ""
 DEFAULT_USER="$(sanitize_linux_user "$LOGIN_HINT")"
+ask_yes_no IS_KT_EMPLOYEE "Ты сотрудник КТ?" "yes"
 ask LOCAL_ROOT "Starter folder on this computer" "${GIT_ROOT:-$HOME/GIT}"
 LOCAL_ROOT="$(mkdir -p "$LOCAL_ROOT" && cd "$LOCAL_ROOT" && pwd)"
 LOCAL_ENV="$LOCAL_ROOT/.env-local"
@@ -155,6 +158,12 @@ info "Creating strict llm-wiki starter folder"
 "$SCRIPT_DIR/refresh-llm-wiki-index.sh" --root "$LOCAL_ROOT"
 append_or_replace_env "$LOCAL_ENV" "LOCAL_GIT_ROOT" "$LOCAL_ROOT"
 [[ -n "$LOGIN_HINT" ]] && append_or_replace_env "$LOCAL_ENV" "LOGIN_HINT" "$LOGIN_HINT"
+append_or_replace_env "$LOCAL_ENV" "IS_KT_EMPLOYEE" "$IS_KT_EMPLOYEE"
+if [[ "$IS_KT_EMPLOYEE" == "yes" ]]; then
+  info "KT project context"
+  kt_print_sync_agent_request
+  append_or_replace_env "$LOCAL_ENV" "KT_SYNC_SERVICE_URL" "$KT_SYNC_SERVICE_URL"
+fi
 
 info "Git accounts"
 ask_yes_no WANT_GITHUB "Do you want personal GitHub configured?" "yes"
@@ -168,7 +177,7 @@ fi
 
 ask_yes_no WANT_WORK_GIT "Do you also want work GitLab/GitHub configured?" "no"
 if [[ "$WANT_WORK_GIT" == "yes" ]]; then
-  ask WORK_GIT_URL "Work Git URL" "https://gitlab.kt-team.de/"
+  ask WORK_GIT_URL "Work Git URL" "$KT_GITLAB_URL"
   append_or_replace_env "$LOCAL_ENV" "WORK_GIT_URL" "$WORK_GIT_URL"
   echo "Add SSH keys in your work Git profile settings."
   if [[ "$WORK_GIT_URL" == *"gitlab"* ]]; then
@@ -177,13 +186,15 @@ if [[ "$WANT_WORK_GIT" == "yes" ]]; then
 fi
 
 info "Server choice"
-cat <<'EOF'
+cat <<EOF
 Choose server:
-  kt       - KT employee server, default ai4u.kt.team.
+  kt       - KT employee server, default ${KT_AI_SERVER_HOST}.
   personal - your own Timeweb/other Ubuntu server.
   none     - local workspace only for now.
 EOF
-ask SERVER_KIND "Server type: kt, personal, or none" "kt"
+DEFAULT_SERVER_KIND="personal"
+[[ "$IS_KT_EMPLOYEE" == "yes" ]] && DEFAULT_SERVER_KIND="kt"
+ask SERVER_KIND "Server type: kt, personal, or none" "$DEFAULT_SERVER_KIND"
 SERVER_HOST=""
 SERVER_USER=""
 SERVER_TARGET=""
@@ -191,7 +202,7 @@ SERVER_READY="no"
 
 case "$SERVER_KIND" in
   kt)
-    ask SERVER_HOST "KT AI server hostname" "ai4u.kt.team"
+    ask SERVER_HOST "KT AI server hostname" "$KT_AI_SERVER_HOST"
     ask SERVER_USER "Linux username on the server" "$DEFAULT_USER"
     SERVER_TARGET="$SERVER_USER@$SERVER_HOST"
     "$SCRIPT_DIR/prepare-server-access.sh" --host "$SERVER_HOST" --user "$SERVER_USER" --kind kt

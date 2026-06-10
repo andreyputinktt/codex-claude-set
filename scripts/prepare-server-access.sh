@@ -81,8 +81,11 @@ print_access_message() {
   echo "$public_key"
   echo
   echo "=== Server access request ==="
-  cat <<EOF
-Дима, привет! Нужен доступ к серверу для рабочего AI/Codex окружения.
+  if [[ "$KIND" == "kt" ]]; then
+    kt_print_server_access_message "$HOST" "$USER_NAME" "$public_key"
+  else
+    cat <<EOF
+Нужен доступ к серверу для рабочего AI/Codex окружения.
 
 Сервер: $HOST
 Пользователь: $USER_NAME
@@ -92,6 +95,7 @@ $public_key
 
 После добавления я подключусь и сам разверну Codex/Claude/OpenSpec/Git/Telegram.
 EOF
+  fi
 }
 
 install_key_with_password() {
@@ -143,6 +147,9 @@ KIND=""
 KEY_PATH="${HOME}/.ssh/ai_server_ed25519"
 INSTALL_KEY="ask"
 DISABLE_PASSWORD="ask"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../config/kt.sh
+source "$SCRIPT_DIR/../config/kt.sh"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

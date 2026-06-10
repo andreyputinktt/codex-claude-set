@@ -76,6 +76,22 @@ function Set-EnvNote {
   Set-Content -Path $Path -Value $lines
 }
 
+function Get-KtConfigValue {
+  param(
+    [string]$Key,
+    [string]$Default
+  )
+  $path = Join-Path $PSScriptRoot "..\config\kt.env"
+  if (Test-Path $path) {
+    foreach ($line in Get-Content $path) {
+      if ($line -match "^\s*$([regex]::Escape($Key))=(.*)$") {
+        return $Matches[1]
+      }
+    }
+  }
+  return $Default
+}
+
 function Initialize-LlmWikiRoot {
   param([string]$Root)
   Ensure-Directory $Root
@@ -103,6 +119,8 @@ function Initialize-LlmWikiRoot {
     "",
     "Use README files as indexes. Root README chooses the folder; child README files own details and dependencies. Use OpenSpec for code, behavior, deploy, integration, prompt, and workflow changes. Keep secrets in ignored .env files.",
     "",
+    "If this workspace is connected to an Ubuntu server deployed from codex-claude-set, check UPSTREAM-INSTRUCTIONS.md and ai-boilerplate-refresh.timer on the server before large setup, infrastructure, or agent-policy work.",
+    "",
     "If git status shows uncommitted changes, run ./deploy-server.py immediately. If the script is missing, report that the workspace is missing its deploy boundary."
   )
   Write-IfMissing (Join-Path $Root "AGENTS.md") @("# Agent guide", "@README.md", "", "Dev rules: [DEV.md](DEV.md).")
@@ -112,20 +130,34 @@ function Initialize-LlmWikiRoot {
     "",
     "Read root README, then DEV when relevant, then the target folder README. Root README chooses the folder and does not duplicate child internals or cross-repo dependency graphs. One fact lives in one place. Keep AGENTS.md and CLAUDE.md as thin pointers."
   )
-  Write-IfMissing (Join-Path $Root ".gitignore") @(".env", ".env-*", "!.env.example", "node_modules/", ".venv/", "venv/", "__pycache__/", "*.log", "logs/", "tmp/", ".cache/")
+  Write-IfMissing (Join-Path $Root ".gitignore") @(".env", ".env-*", "!.env.example", "node_modules/", ".venv/", "venv/", "__pycache__/", "*.log", "logs/", "tmp/", ".cache/", "sloy-KT/")
 }
 
 Write-Host "Beginner Codex/Claude Windows onboarding"
 Write-Host "Windows is configured as a station/client. Repos, services, secrets, and long-running work stay on the Ubuntu server."
 
+$ktAiServerHost = Get-KtConfigValue "KT_AI_SERVER_HOST" "ai4u.kt.team"
+$ktSyncServiceUrl = Get-KtConfigValue "KT_SYNC_SERVICE_URL" "https://sync-service.osno-va.com/"
+$ktSyncAgentButton = Get-KtConfigValue "KT_SYNC_AGENT_BUTTON" "Подключить агента"
+$ktSyncAgentRequest = "Сходите в $ktSyncServiceUrl и нажмите кнопку `"$ktSyncAgentButton`" и дайте последнюю инструкцию установки в этот чат."
+
 $loginHint = Ask-Value "Your OpenAI/Claude or work email, used for default Linux login"
 $defaultUser = Sanitize-LinuxUser $loginHint
+$isKtEmployee = Ask-YesNo "Ты сотрудник КТ?" "yes"
 
 $LocalRoot = Ask-Value "Starter folder on this computer" $LocalRoot
 Initialize-LlmWikiRoot $LocalRoot
 $localEnv = Join-Path $LocalRoot ".env-local"
 Set-EnvNote $localEnv "LOCAL_GIT_ROOT" $LocalRoot
 if ($loginHint) { Set-EnvNote $localEnv "LOGIN_HINT" $loginHint }
+$isKtEmployeeValue = if ($isKtEmployee) { "yes" } else { "no" }
+Set-EnvNote $localEnv "IS_KT_EMPLOYEE" $isKtEmployeeValue
+if ($isKtEmployee) {
+  Write-Host ""
+  Write-Host "KT project context:"
+  Write-Host $ktSyncAgentRequest
+  Set-EnvNote $localEnv "KT_SYNC_SERVICE_URL" $ktSyncServiceUrl
+}
 
 $wantGithub = Ask-YesNo "Do you want personal GitHub configured?" "yes"
 if ($wantGithub) {
@@ -140,13 +172,14 @@ if ($wantGithub) {
 
 Write-Host ""
 Write-Host "Server choices:"
-Write-Host "  kt       - KT employee server, default ai4u.kt.team."
+Write-Host "  kt       - KT employee server, default $ktAiServerHost."
 Write-Host "  personal - your own Timeweb/other Ubuntu server."
 Write-Host "  none     - local workspace only for now."
-$serverKind = Ask-Value "Server type: kt, personal, or none" "kt"
+$defaultServerKind = if ($isKtEmployee) { "kt" } else { "personal" }
+$serverKind = Ask-Value "Server type: kt, personal, or none" $defaultServerKind
 if ($serverKind -ne "none") {
   if (-not $ServerHost) {
-    $defaultHost = if ($serverKind -eq "kt") { "ai4u.kt.team" } else { "" }
+    $defaultHost = if ($serverKind -eq "kt") { $ktAiServerHost } else { "" }
     $ServerHost = Ask-Value "Server IP or hostname" $defaultHost
   }
   if (-not $ServerUser) {

@@ -43,30 +43,45 @@ Goal: make the target server work like Andrey's AI automation server:
   a simple command-line health check, pass it as `--verify-command` /
   `-VerifyCommand`; omit the parameter only when no simple check exists.
 - If this environment is deployed from `codex-claude-set` and I am not the
-  upstream author, periodically check the upstream repo for updated rules and
-  refresh local `GIT/` instructions. Do this at least monthly and before large
-  setup, infrastructure, or agent-policy work.
+  upstream author, install and use `ai-boilerplate-refresh.timer`. It should
+  pull `~/GIT/codex-claude-set` weekly, reinstall helper scripts, run
+  `ai-index-refresh`, update nested Git ignores, and write
+  `~/GIT/UPSTREAM-INSTRUCTIONS.md`. Before large setup, infrastructure, or
+  agent-policy work, check the timer or run
+  `sudo systemctl start ai-boilerplate-refresh.service`.
 
 First ask me these questions, one compact batch, using simple language:
 
 1. Starter folder path on this computer. Default `~/GIT`.
 2. OpenAI or Claude login/email, used to derive a personal default Linux
    username.
-3. Whether I have or want personal GitHub.
-4. Whether I also need a work Git provider: GitHub, personal GitLab, KT GitLab,
+3. Ты сотрудник КТ?
+4. Whether I have or want personal GitHub.
+5. Whether I also need a work Git provider: GitHub, personal GitLab, KT GitLab,
    or none.
-5. Server choice: KT `ai4u.kt.team`, personal Timeweb/other Ubuntu server, or no
+6. Server choice: KT `ai4u.kt.team`, personal Timeweb/other Ubuntu server, or no
    server yet.
-6. Server IP/hostname, if not default KT.
-7. Linux username to create/use, if different from that personal default. Do not
+7. Server IP/hostname, if not default KT.
+8. Linux username to create/use, if different from that personal default. Do not
    use generic names such as `ai`.
-8. Whether password SSH is available now, existing SSH key works, or an admin
+9. Whether password SSH is available now, existing SSH key works, or an admin
    must add a key first.
-9. Whether to disable password SSH after key login is verified.
-10. Whether this computer is Windows and should be configured as a station.
-11. Backend preference: Codex/Claude only, Hermes, OpenClaw, or both.
-12. Telegram bot token and owner chat id, or "help me create Telegram bot".
-13. OpenAI API key, Anthropic/Claude API key, Gemini API key, or skip each.
+10. Whether to disable password SSH after key login is verified.
+11. Whether this computer is Windows and should be configured as a station.
+12. Backend preference: Codex/Claude only, Hermes, OpenClaw, or both.
+13. Telegram bot token and owner chat id, or "help me create Telegram bot".
+14. OpenAI API key, Anthropic/Claude API key, Gemini API key, or skip each.
+
+If I answer that I am a KT employee, ask this exact project-context setup
+request before server bootstrap:
+
+```text
+Сходите в https://sync-service.osno-va.com/ и нажмите кнопку "Подключить агента" и дайте последнюю инструкцию установки в этот чат.
+```
+
+KT-specific defaults live in `config/kt.env` / `config/kt.sh`; use those files
+as the source of truth for the KT AI server, corporate GitLab, sync-service URL,
+and employee project-context request.
 
 Server access rules:
 
@@ -138,7 +153,11 @@ keys, provider choices, and backend preference.
 5. Copy it to the server under `/tmp/codex-claude-set`.
 6. Run `sudo bash /tmp/codex-claude-set/bootstrap.sh`.
 7. Answer installer prompts using the values I gave you.
-8. Verify:
+8. Verify the boilerplate updater:
+   - `systemctl status ai-boilerplate-refresh.timer --no-pager`
+   - `sudo systemctl start ai-boilerplate-refresh.service`
+   - `cat ~/GIT/UPSTREAM-INSTRUCTIONS.md`
+9. Verify:
    - `codex --version`
    - `claude --version`
    - `openclaw --version`
@@ -182,6 +201,9 @@ ai-codex-remote-status
    - Let it choose/confirm the root `GIT/` folder.
    - Offer to create/reorganize the folder skeleton and README files according
      to llm-wiki.
+   - Ask "Ты сотрудник КТ?".
+   - If yes, ask me to use sync-service:
+     `Сходите в https://sync-service.osno-va.com/ и нажмите кнопку "Подключить агента" и дайте последнюю инструкцию установки в этот чат.`
    - Default AI server should be `ai4u.kt.team`.
    - Default login prompt should suggest using my kt.team login.
    - It should guide OpenAI, Telegram, Claude/Anthropic, optional Gemini, mail,
@@ -261,8 +283,8 @@ Deliverables:
 - The user knows what was installed and how to connect.
 - The root `GIT/` docs describe current server, Git providers, Telegram, env,
   OpenSpec, caveman lite, repo creation, and deploy/autosync.
-- The root `GIT/` docs include the rule to periodically refresh local
-  instructions from upstream `codex-claude-set`, except for the upstream author
-  while authoring those changes.
+- The root `GIT/` docs include the weekly updater rule for upstream
+  `codex-claude-set`, except for the upstream author while authoring those
+  changes.
 - Telegram onboarding is complete or explicitly skipped.
 - No secret is printed in final output.

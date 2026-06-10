@@ -119,6 +119,8 @@ create_workspace_skeleton() {
     "" \
     "Keep secrets in ignored .env files. Use README files as indexes. Root README chooses the folder; child README files own details and dependencies. Use OpenSpec for code, behavior, deploy, integration, prompt, and workflow changes." \
     "" \
+    "If this workspace was deployed from codex-claude-set, check UPSTREAM-INSTRUCTIONS.md and ai-boilerplate-refresh.timer before large setup, infrastructure, or agent-policy work. The weekly updater pulls ~/GIT/codex-claude-set, refreshes helper scripts, runs ai-index-refresh, and updates nested Git ignores without overwriting local README.md or DEV.md." \
+    "" \
     "If git status shows uncommitted changes, run ./deploy-server.py immediately. If the script is missing, report that the workspace is missing its deploy boundary."
   write_if_missing "$root/AGENTS.md" \
     "# Agent guide" \
@@ -142,7 +144,8 @@ create_workspace_skeleton() {
     "logs/" \
     "tmp/" \
     ".cache/" \
-    ".DS_Store"
+    ".DS_Store" \
+    "sloy-KT/"
 
   local folder
   for folder in assistants projects services sites contexts outputs archives docs; do
@@ -164,6 +167,9 @@ print_key_file() {
 }
 
 SET_SECRET="$(find_set_secret)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../config/kt.sh
+source "$SCRIPT_DIR/../config/kt.sh"
 
 echo "Codex-Claude first-run onboarding"
 echo "This script configures the local/server GIT root, shared secrets, Git providers, mail notes, and Telegram control."
@@ -183,7 +189,15 @@ fi
 
 LOCAL_ENV="$GIT_ROOT/.env-local"
 
-ask AI_SERVER_HOST "Main AI server hostname" "ai4u.kt.team"
+ask_yes_no IS_KT_EMPLOYEE "Ты сотрудник КТ?" "yes"
+append_or_replace_env "$LOCAL_ENV" "IS_KT_EMPLOYEE" "$IS_KT_EMPLOYEE"
+if [[ "$IS_KT_EMPLOYEE" == "yes" ]]; then
+  info "KT project context"
+  kt_print_sync_agent_request
+  append_or_replace_env "$LOCAL_ENV" "KT_SYNC_SERVICE_URL" "$KT_SYNC_SERVICE_URL"
+fi
+
+ask AI_SERVER_HOST "Main AI server hostname" "$KT_AI_SERVER_HOST"
 append_or_replace_env "$LOCAL_ENV" "AI_SERVER_HOST" "$AI_SERVER_HOST"
 
 ask KT_LOGIN "Default login you usually want to use, for example your kt.team login/email" ""
@@ -244,7 +258,7 @@ ask GITHUB_USERNAME "GitHub username/namespace (empty to skip)" ""
 [[ -n "$GITHUB_USERNAME" ]] && append_or_replace_env "$LOCAL_ENV" "GITHUB_USERNAME" "$GITHUB_USERNAME"
 
 info "Corporate GitLab"
-ask GITLAB_URL "Corporate GitLab URL" "https://gitlab.kt-team.de/"
+ask GITLAB_URL "Corporate GitLab URL" "$KT_GITLAB_URL"
 append_or_replace_env "$LOCAL_ENV" "GITLAB_URL" "$GITLAB_URL"
 ask GITLAB_GROUP "Your GitLab group/namespace, if any (empty to skip)" ""
 [[ -n "$GITLAB_GROUP" ]] && append_or_replace_env "$LOCAL_ENV" "GITLAB_GROUP" "$GITLAB_GROUP"

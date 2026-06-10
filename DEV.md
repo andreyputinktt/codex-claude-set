@@ -139,21 +139,39 @@ Use deterministic helpers instead of relying on agent memory:
 ```bash
 scripts/refresh-llm-wiki-index.sh --root ~/GIT
 ai-index-refresh --root ~/GIT
+ai-ignore-nested-git-repos --root ~/GIT
 ```
 
-The command creates missing root/repo llm-wiki files and updates only the
-marker-managed block in the root README. The generated block is one folder index
-table with description, use-case hints, and bounded Codex session hints from the
-latest local session logs. Run it after creating, moving, or renaming
-repos/folders. `ai-new-repo` runs it automatically after bootstrap.
+The command creates missing root/repo llm-wiki files, appends nested Git
+repositories to the root `.gitignore`, and updates only the marker-managed block
+in the root README. The generated block is one folder index table with
+description, use-case hints, and bounded Codex session hints from the latest
+local session logs. Run it after creating, moving, or renaming repos/folders.
+`ai-new-repo` runs it automatically after bootstrap.
+
+Use `ai-ignore-nested-git-repos --root ~/GIT --check` in CI-style checks when
+you only want to fail on missing `.gitignore` entries. The helper appends paths
+like `/assistants/foo/` or `/sloy-KT/`; it does not untrack files that were
+already committed by the parent repo.
 
 ## Upstream Instruction Refresh
 
-Installed employee environments should periodically refresh their working rules
-from this upstream `codex-claude-set` repository. At least monthly, and before
-large setup or infrastructure work, check the current `README.md`, `DEV.md`,
-`PROMPT.md`, `INSTALL.md`, and relevant recipes, then update the local server
-rules if upstream changed.
+Installed employee environments refresh their boilerplate rules through
+`ai-boilerplate-refresh.timer`. The weekly job pulls `~/GIT/codex-claude-set`,
+reinstalls bundled helper scripts, runs `ai-index-refresh`, updates nested Git
+ignores, and writes `~/GIT/UPSTREAM-INSTRUCTIONS.md`.
+
+Before large setup or infrastructure work, check or force the updater:
+
+```bash
+systemctl status ai-boilerplate-refresh.timer --no-pager
+sudo systemctl start ai-boilerplate-refresh.service
+```
+
+Then read `~/GIT/UPSTREAM-INSTRUCTIONS.md` plus the current upstream
+`README.md`, `DEV.md`, `PROMPT.md`, `INSTALL.md`, and relevant recipes. Do not
+blindly overwrite local workspace `README.md` or `DEV.md`; local facts stay
+local.
 
 This reminder is for people who deployed from the kit. It does not apply to the
 upstream author while authoring the rules themselves.
@@ -211,6 +229,11 @@ Beginner Windows setup starts with:
 Use `windows/bootstrap.ps1` only when server host/user are already known.
 
 ## Beginner Onboarding
+
+KT-specific scalar defaults live in `config/kt.env`; bash formatting helpers
+live in `config/kt.sh`. Keep `ai4u.kt.team`, the KT GitLab URL, sync-service
+URL, and employee project-context prompt there instead of duplicating these
+values in onboarding scripts or docs.
 
 Default beginner path for macOS/Linux:
 

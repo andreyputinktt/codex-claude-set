@@ -239,6 +239,9 @@ when relevant, then the target folder README.
   its deploy boundary.
 - Run \`ai-index-refresh --root ~/GIT\` after repo/folder changes; \`ai-new-repo\`
   runs it automatically.
+- \`ai-boilerplate-refresh.timer\` pulls \`codex-claude-set\` weekly, reinstalls
+  helper scripts, refreshes the workspace index, and writes
+  \`UPSTREAM-INSTRUCTIONS.md\`.
 - Caveman lite is the default response style.
 - Secrets stay in ignored \`.env\` files.
 - Windows workstations are clients only; run code, git, env, services, and
@@ -291,9 +294,20 @@ Service-specific secrets live in that service repo \`.env\`.
 ## Upstream Instruction Refresh
 
 This environment was deployed from \`codex-claude-set\`. If the user is not the
-upstream author, periodically check the upstream repo for updated rules and
-refresh local \`GIT/\` instructions. Do this at least monthly and before large
-setup, infrastructure, or agent-policy work.
+upstream author, use the weekly \`ai-boilerplate-refresh.timer\` as the default
+refresh path. It pulls \`$GIT_ROOT/codex-claude-set\`, reinstalls bundled helper
+scripts, runs \`ai-index-refresh\`, updates nested Git ignores, and writes
+\`$GIT_ROOT/UPSTREAM-INSTRUCTIONS.md\`. Check the timer before large setup,
+infrastructure, or agent-policy work:
+
+\`\`\`bash
+systemctl status ai-boilerplate-refresh.timer --no-pager
+sudo systemctl start ai-boilerplate-refresh.service
+\`\`\`
+
+Do not blindly overwrite local \`README.md\` or \`DEV.md\` from upstream; local
+facts stay local, and upstream boilerplate instructions are read from
+\`UPSTREAM-INSTRUCTIONS.md\` plus \`$GIT_ROOT/codex-claude-set/\`.
 
 ## Git
 
@@ -402,6 +416,7 @@ tmp/
 .cache/
 .DS_Store
 assistants/*/
+sloy-KT/
 EOF
 
 chown -R "$SETUP_USER:$SETUP_USER" "$GIT_ROOT"
@@ -433,10 +448,44 @@ install -m 0755 "$SCRIPT_DIR/scripts/prepare-server-access.sh" /usr/local/bin/ai
 install -m 0755 "$SCRIPT_DIR/scripts/prepare-server-access.sh" /usr/local/bin/prepare-server-access.sh
 install -m 0755 "$SCRIPT_DIR/scripts/refresh-llm-wiki-index.sh" /usr/local/bin/ai-index-refresh
 install -m 0755 "$SCRIPT_DIR/scripts/refresh-llm-wiki-index.sh" /usr/local/bin/refresh-llm-wiki-index.sh
+install -m 0755 "$SCRIPT_DIR/scripts/ignore-nested-git-repos.sh" /usr/local/bin/ai-ignore-nested-git-repos
+install -m 0755 "$SCRIPT_DIR/scripts/ignore-nested-git-repos.sh" /usr/local/bin/ignore-nested-git-repos.sh
 install -m 0755 "$SCRIPT_DIR/scripts/mirror-workspace.sh" /usr/local/bin/ai-mirror-workspace
 install -m 0755 "$SCRIPT_DIR/scripts/mirror-workspace.sh" /usr/local/bin/mirror-workspace.sh
 install -m 0755 "$SCRIPT_DIR/scripts/beginner-onboarding.sh" /usr/local/bin/ai-beginner-onboarding
 install -m 0755 "$SCRIPT_DIR/scripts/beginner-onboarding.sh" /usr/local/bin/beginner-onboarding.sh
+install -m 0755 "$SCRIPT_DIR/scripts/update-boilerplate-instructions.sh" /usr/local/bin/ai-boilerplate-refresh
+install -m 0755 "$SCRIPT_DIR/scripts/update-boilerplate-instructions.sh" /usr/local/bin/update-boilerplate-instructions.sh
+
+cat > /etc/systemd/system/ai-boilerplate-refresh.service <<EOF
+[Unit]
+Description=Refresh codex-claude-set boilerplate instructions for $SETUP_USER
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=GIT_ROOT=$GIT_ROOT
+Environment=SETUP_USER=$SETUP_USER
+Environment=CODEX_CLAUDE_SET_REPO_URL=https://github.com/andreyputinktt/codex-claude-set.git
+ExecStart=/usr/local/bin/ai-boilerplate-refresh --root $GIT_ROOT --user $SETUP_USER
+TimeoutStartSec=300
+EOF
+
+cat > /etc/systemd/system/ai-boilerplate-refresh.timer <<'EOF'
+[Unit]
+Description=Refresh codex-claude-set boilerplate instructions weekly
+
+[Timer]
+OnBootSec=10min
+OnCalendar=weekly
+RandomizedDelaySec=2h
+Persistent=true
+Unit=ai-boilerplate-refresh.service
+
+[Install]
+WantedBy=timers.target
+EOF
 
 cat > /usr/local/bin/ai-new-repo <<'EOF'
 #!/usr/bin/env bash
@@ -819,6 +868,8 @@ Unit=ai-git-autosync.service
 WantedBy=timers.target
 EOF
 systemctl daemon-reload
+systemctl enable --now ai-boilerplate-refresh.timer >/dev/null 2>&1 || true
+systemctl start ai-boilerplate-refresh.service >/dev/null 2>&1 || true
 systemctl enable --now ai-git-autosync.timer >/dev/null 2>&1 || true
 
 if [[ "$TELEGRAM_MODE" =~ ^[Yy] && -n "$TELEGRAM_BOT_TOKEN" && -n "$TELEGRAM_OWNER_CHAT_ID" ]]; then

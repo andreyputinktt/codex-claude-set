@@ -107,8 +107,10 @@ if [[ "$REMOTE_REFRESH" -eq 1 ]]; then
     ssh "$SERVER" "ai-index-refresh --root $(shell_quote "$REMOTE_ROOT")"
   else
     tmp_remote="/tmp/ai-index-refresh.$$"
+    tmp_ignore_remote="/tmp/ai-ignore-nested-git-repos.$$"
     scp -q "$SCRIPT_DIR/refresh-llm-wiki-index.sh" "$SERVER:$tmp_remote"
-    ssh "$SERVER" "bash $(shell_quote "$tmp_remote") --root $(shell_quote "$REMOTE_ROOT"); rm -f $(shell_quote "$tmp_remote")"
+    scp -q "$SCRIPT_DIR/ignore-nested-git-repos.sh" "$SERVER:$tmp_ignore_remote"
+    ssh "$SERVER" "AI_IGNORE_NESTED_GIT_SCRIPT=$(shell_quote "$tmp_ignore_remote") bash $(shell_quote "$tmp_remote") --root $(shell_quote "$REMOTE_ROOT"); rm -f $(shell_quote "$tmp_remote") $(shell_quote "$tmp_ignore_remote")"
   fi
 fi
 
