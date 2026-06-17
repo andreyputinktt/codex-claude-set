@@ -18,6 +18,9 @@ Options:
   --check                 Fail if changes would be needed.
   --no-standard-folders   Do not create starter folders.
   --no-ignore-nested-git  Do not update root .gitignore for nested Git repos.
+  --index-only            Only refresh the marker-managed index block in root
+                          README.md. Skip all file/folder scaffolding and the
+                          nested-git ignore step. Requires README.md to exist.
   --codex-session-limit N Latest Codex session logs to scan for folder hints.
 EOF
 }
@@ -70,6 +73,27 @@ safe_table_text() {
   value="${value//$'\n'/ }"
   value="${value//|/\\|}"
   printf "%s" "$value"
+}
+
+# Plain-language purpose of a folder: the first paragraph after the H1 in its
+# README. That paragraph is the "why this folder exists" sentence the index
+# shows, so the root never re-states folder internals.
+folder_purpose() {
+  local path="$1/README.md"
+  [[ -f "$path" ]] || return 0
+  awk '
+    seen_h1 == 0 && /^#[[:space:]]/ { seen_h1 = 1; next }
+    seen_h1 == 0 { next }
+    /^@/ { next }
+    /^[[:space:]]*$/ { if (started) exit; else next }
+    {
+      gsub(/^[[:space:]]+/, "")
+      gsub(/[[:space:]]+$/, "")
+      para = para (para == "" ? "" : " ") $0
+      started = 1
+    }
+    END { print para }
+  ' "$path"
 }
 
 ensure_root_files() {
@@ -144,7 +168,9 @@ ensure_standard_folders() {
     write_file_if_missing "$ROOT/$folder/README.md" \
       "# $folder" \
       "" \
-      "Index for $folder. Link to child repos or important files instead of duplicating details."
+      "Зачем эта папка: опиши простыми словами, что здесь лежит и когда сюда идти." \
+      "" \
+      "Индекс ведёт только на один уровень вниз — детали и подпапки описывает их собственный README, не этот файл. Ссылайся на дочерние репо/файлы, а не дублируй их содержимое."
   done
 }
 
@@ -215,7 +241,9 @@ ensure_repo_files() {
     write_file_if_missing "$repo/README.md" \
       "# $name" \
       "" \
-      "Repository index. Document purpose, run commands, dependencies, and links to deeper docs."
+      "Зачем этот репозиторий: опиши простыми словами назначение — первой строкой, понятным языком." \
+      "" \
+      "Дальше документируй запуск, зависимости и ссылки на deeper docs. README описывает только свой уровень; внутренности подпапок — в их README."
     write_file_if_missing "$repo/AGENTS.md" \
       "# Agent guide" \
       "@README.md" \
@@ -306,27 +334,26 @@ codex_session_hint_for() {
 
 write_managed_block() {
   local block_file="$1"
-  local entry title cases codex_hint
+  local entry title purpose
 
   {
     echo "<!-- ai-index:start -->"
-    echo "## Workspace Index"
+    echo "## Индекс папок"
     echo
-    echo "Managed by \`ai-index-refresh\`. Root README chooses the folder; child README files own details and dependencies. Rerun the command to refresh this block."
-    echo "Use the cases column as search hints. Codex hints scan the latest ${CODEX_SESSION_LIMIT} session logs and show only session paths where a folder was already mentioned."
+    echo "Генерируется \`ai-index-refresh\` из README каждой папки верхнего уровня. Отвечает на «зачем заходить»: выбери папку → читай \`<папка>/README.md\` за деталями. Индекс ведёт только на один уровень вниз — внутреннее устройство папки описывает её собственный README, а не этот блок. Перегенерируй командой."
     echo
-    echo "| Folder | Description | Cases | Codex hints |"
-    echo "| --- | --- | --- | --- |"
+    echo "| Папка | Зачем заходить |"
+    echo "| --- | --- |"
     for entry in "${INDEX_ENTRIES[@]+"${INDEX_ENTRIES[@]}"}"; do
-      title="$(first_heading "$ROOT/$entry/README.md")"
-      [[ -n "$title" ]] || title="$(basename "$entry")"
-      cases="$(entry_cases "$entry")"
-      codex_hint="$(codex_session_hint_for "$entry")"
-      printf '| `%s/` | %s | %s | %s |\n' \
+      purpose="$(folder_purpose "$ROOT/$entry")"
+      if [[ -z "$purpose" ]]; then
+        title="$(first_heading "$ROOT/$entry/README.md")"
+        [[ -n "$title" ]] || title="$(basename "$entry")"
+        purpose="${title}. Добавь в \`${entry}/README.md\` понятное описание, зачем эта папка."
+      fi
+      printf '| `%s/` | %s |\n' \
         "$entry" \
-        "$(safe_table_text "$title")" \
-        "$(safe_table_text "$cases")" \
-        "$(safe_table_text "$codex_hint")"
+        "$(safe_table_text "$purpose")"
     done
     echo "<!-- ai-index:end -->"
   } > "$block_file"
@@ -382,6 +409,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IGNORE_NESTED_GIT_SCRIPT="${AI_IGNORE_NESTED_GIT_SCRIPT:-$SCRIPT_DIR/ignore-nested-git-repos.sh}"
 DRY_RUN=0
 CHECK_ONLY=0
+INDEX_ONLY=0
 CREATE_STANDARD_FOLDERS=1
 IGNORE_NESTED_GIT=1
 CODEX_SESSION_LIMIT=30
@@ -414,6 +442,10 @@ while [[ $# -gt 0 ]]; do
       IGNORE_NESTED_GIT=0
       shift
       ;;
+    --index-only)
+      INDEX_ONLY=1
+      shift
+      ;;
     --codex-session-limit)
       CODEX_SESSION_LIMIT="${2:-}"
       shift 2
@@ -431,16 +463,19 @@ done
 [[ -n "$ROOT" ]] || die "--root is required"
 ROOT="$(mkdir -p "$ROOT" && cd "$ROOT" && pwd)"
 
-ensure_root_files
-ensure_nested_git_ignores
-ensure_standard_folders
-collect_top_folders
-collect_repos
-ensure_repo_files
+if [[ "$INDEX_ONLY" -eq 1 ]]; then
+  [[ -f "$ROOT/README.md" ]] || die "--index-only needs an existing README.md in $ROOT"
+else
+  ensure_root_files
+  ensure_nested_git_ignores
+  ensure_standard_folders
+  collect_top_folders
+  collect_repos
+  ensure_repo_files
+fi
 collect_top_folders
 collect_repos
 collect_index_entries
-collect_recent_codex_sessions
 update_root_readme_block
 
 if [[ "$CHECK_ONLY" -eq 1 && "$CHANGES" -gt 0 ]]; then
