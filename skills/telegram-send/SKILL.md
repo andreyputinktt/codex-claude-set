@@ -14,6 +14,14 @@ Use the script on the server only. It resolves people by name/profile and sends
 by userapi by default. If the current agent is local, call it through SSH; do
 not run actual Telegram sends locally.
 
+## Install
+
+Install this skill for Codex with `scripts/install.sh`. It asks for `global` or
+`local` scope; pressing Enter selects `global` (`~/.codex/skills/telegram-send`).
+Use `--local --project /path/to/project` to install into a project's
+`.codex/skills/telegram-send`. Installation copies instructions and scripts only;
+it never copies Telegram credentials or user sessions.
+
 ## Commands
 
 Dry-run:
