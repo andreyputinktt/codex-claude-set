@@ -1,0 +1,4 @@
+interface:
+  display_name: "Telegram Send"
+  short_description: "Send Telegram messages from Andrey's account"
+  default_prompt: "Use $telegram-send to send a Telegram message on my behalf."

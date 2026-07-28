@@ -165,9 +165,9 @@ cd ~/GIT/codex-claude-set
 scripts/install-skills.sh --git-root ~/GIT --home "$HOME"
 ```
 
-The `telegram-send` skill is installed into `GIT/.agents/skills` and
-`~/.agents/skills`, with lightweight Codex/Claude/Hermes/Cursor adapters in the
-workspace.
+The `telegram-send` skill is installed into `GIT/.agents/skills`,
+`~/.agents/skills`, and the globally auto-discovered `~/.codex/skills`, with
+lightweight Codex/Claude/Hermes/Cursor adapters in the workspace.
 
 ## Windows Station
 

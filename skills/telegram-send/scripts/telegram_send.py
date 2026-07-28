@@ -31,17 +31,65 @@ def _norm(value: str) -> str:
     return " ".join(value.split())
 
 
+def _russian_name_forms(value: str) -> set[str]:
+    """Return conservative grammatical forms for one Russian name token."""
+    value = _norm(value)
+    if not value or " " in value or not re.fullmatch(r"[а-яё]+", value):
+        return {value}
+    forms = {value}
+    if value.endswith("ий") and len(value) > 4:
+        stem = value[:-2]
+        forms.update(stem + ending for ending in ("его", "ему", "им", "ем"))
+    elif value.endswith("ый") and len(value) > 4:
+        stem = value[:-2]
+        forms.update(stem + ending for ending in ("ого", "ому", "ым", "ом"))
+    elif value.endswith("ей") and len(value) > 4:
+        stem = value[:-1]
+        forms.update(stem + ending for ending in ("я", "ю", "ем", "е"))
+    elif value.endswith("й") and len(value) > 3:
+        stem = value[:-1]
+        forms.update(stem + ending for ending in ("я", "ю", "ем", "е"))
+    elif value.endswith("а") and len(value) > 3:
+        stem = value[:-1]
+        forms.update(stem + ending for ending in ("ы", "и", "е", "у", "ой", "ою"))
+    elif value.endswith("я") and len(value) > 3:
+        stem = value[:-1]
+        forms.update(stem + ending for ending in ("и", "е", "ю", "ей", "ею"))
+    elif value.endswith("ь") and len(value) > 3:
+        stem = value[:-1]
+        forms.update(stem + ending for ending in ("я", "ю", "ем", "е", "и", "ью"))
+    elif value[-1] not in "аеёиоуыэюя":
+        forms.update(value + ending for ending in ("а", "у", "ом", "е", "ым", "им"))
+    return forms
+
+
+def _token_matches(query_token: str, alias_token: str) -> bool:
+    return query_token == alias_token or query_token in _russian_name_forms(alias_token)
+
+
+def _alias_matches(query: str, alias: str) -> bool:
+    query_tokens = _norm(query).split()
+    alias_tokens = _norm(alias).split()
+    if not query_tokens or not alias_tokens:
+        return False
+    return all(any(_token_matches(query_token, alias_token) for query_token in query_tokens) for alias_token in alias_tokens)
+
+
 def _repo_root() -> Path:
     configured = os.getenv("GIT_ROOT", "").strip()
     if configured:
         return Path(configured).expanduser().resolve()
     cwd = Path.cwd().resolve()
     for path in [cwd, *cwd.parents]:
-        if (path / "README.md").exists() and (path / "telegram-chats").exists():
+        if (path / "README.md").exists() and _telegram_chats_root(path).exists():
             return path
     if (Path.home() / "GIT").exists():
         return Path.home() / "GIT"
     return DEFAULT_MAC_GIT_ROOT
+
+
+def _telegram_chats_root(root: Path) -> Path:
+    return root / "assistants" / "telegram-chats"
 
 
 def _load_env_file(path: Path) -> None:
@@ -96,14 +144,13 @@ def _recipient_from_people(root: Path, query: str) -> list[Recipient]:
     people_dir = root / "peoples"
     if not people_dir.exists():
         return []
-    needle = _norm(query)
     matches: list[Recipient] = []
     for path in people_dir.glob("*.md"):
         text = path.read_text(encoding="utf-8", errors="ignore")
         title_match = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
         title = title_match.group(1).strip() if title_match else path.stem
         aliases = {path.stem, title, *title.split()}
-        if not any(needle == _norm(alias) or needle in _norm(alias) for alias in aliases if alias):
+        if not any(_alias_matches(query, alias) for alias in aliases if alias):
             continue
         destination = _extract_telegram_destination(text)
         if destination:
@@ -111,21 +158,38 @@ def _recipient_from_people(root: Path, query: str) -> list[Recipient]:
     return matches
 
 
+def _recipient_from_contacts(query: str) -> list[Recipient]:
+    contacts_path = Path(__file__).resolve().parent.parent / "contacts.json"
+    if not contacts_path.exists():
+        return []
+    try:
+        contacts = json.loads(contacts_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return []
+    matches: list[Recipient] = []
+    for contact in contacts:
+        label = str(contact.get("name") or "").strip()
+        destination = str(contact.get("telegram") or "").strip()
+        aliases = [label, destination, *(contact.get("aliases") or [])]
+        if label and destination and any(_alias_matches(query, str(alias)) for alias in aliases if alias):
+            matches.append(Recipient(query=query, destination=destination, label=label, source=str(contacts_path)))
+    return matches
+
+
 def _recipient_from_state(root: Path, query: str) -> list[Recipient]:
-    state_path = root / "telegram-chats" / "state.json"
+    state_path = _telegram_chats_root(root) / "state.json"
     if not state_path.exists():
         return []
     try:
         state = json.loads(state_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return []
-    needle = _norm(query)
     matches: list[Recipient] = []
     for label, data in (state.get("chats") or {}).items():
         destination = str((data or {}).get("chat_id") or "")
         if not destination:
             continue
-        if needle == _norm(label) or needle in _norm(label) or query == destination:
+        if _alias_matches(query, label) or query == destination:
             matches.append(Recipient(query=query, destination=destination, label=label, source=str(state_path.relative_to(root))))
     return matches
 
@@ -136,7 +200,7 @@ def resolve_recipient(root: Path, query: str) -> Recipient:
         raise RuntimeError("recipient is required")
     if query.startswith("@") or query.startswith("+") or re.fullmatch(r"-?\d+", query):
         return Recipient(query=query, destination=query, label=query, source="explicit")
-    matches = _recipient_from_people(root, query) + _recipient_from_state(root, query)
+    matches = _recipient_from_people(root, query) + _recipient_from_contacts(query) + _recipient_from_state(root, query)
     unique: dict[tuple[str, str], Recipient] = {(item.destination, item.label): item for item in matches}
     matches = list(unique.values())
     if not matches:
@@ -181,10 +245,11 @@ def _user_parse_mode(value: str) -> str | None:
     return mapping[value]
 
 
-async def send_user_api(destination: str, text: str, parse_mode: str) -> dict[str, Any]:
+async def send_user_api(destination: str, text: str, parse_mode: str, reply_to: int | None = None, file: str | None = None) -> dict[str, Any]:
     try:
         from telethon import TelegramClient
         from telethon.sessions import StringSession
+        from telethon.tl.types import PeerChannel
     except ImportError as exc:
         raise RuntimeError("telethon is required for userapi sending; run inside relationship-warmer .venv or install telethon") from exc
 
@@ -214,11 +279,33 @@ async def send_user_api(destination: str, text: str, parse_mode: str) -> dict[st
     async with client:
         if not await client.is_user_authorized():
             raise RuntimeError("Telegram user session is not authorized")
-        message = await client.send_message(destination, text[:3900], parse_mode=_user_parse_mode(parse_mode))
+        entity: Any = destination
+        if reply_to is not None and re.fullmatch(r"-?\d+", destination):
+            marked_id = int(destination)
+            if marked_id < -1000000000000:
+                entity = PeerChannel(int(str(abs(marked_id))[3:]))
+            elif marked_id > 1000000000:
+                entity = PeerChannel(marked_id)
+        if file:
+            # ponytail: file only via userapi; caption limit is Telegram's 1024
+            message = await client.send_file(
+                entity,
+                file,
+                caption=text[:1024],
+                parse_mode=_user_parse_mode(parse_mode),
+                reply_to=reply_to,
+            )
+        else:
+            message = await client.send_message(
+                entity,
+                text[:3900],
+                parse_mode=_user_parse_mode(parse_mode),
+                reply_to=reply_to,
+            )
     return {"provider": "telegram_user_api", "destination": destination, "telegram_message_id": int(message.id)}
 
 
-def send_bot_api(destination: str, text: str, parse_mode: str, timeout: int) -> dict[str, Any]:
+def send_bot_api(destination: str, text: str, parse_mode: str, timeout: int, reply_to: int | None = None) -> dict[str, Any]:
     token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
     if not token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is required for bot sending")
@@ -230,6 +317,8 @@ def send_bot_api(destination: str, text: str, parse_mode: str, timeout: int) -> 
     mode = _bot_parse_mode(parse_mode)
     if mode:
         data["parse_mode"] = mode
+    if reply_to is not None:
+        data["message_thread_id"] = str(reply_to)
     body = urllib.parse.urlencode(data).encode()
     req = urllib.request.Request(
         f"https://api.telegram.org/bot{token}/sendMessage",
@@ -250,8 +339,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--message", help="Message text")
     parser.add_argument("--message-file", help="UTF-8 file with message text")
     parser.add_argument("--stdin", action="store_true", help="Read message text from stdin")
+    parser.add_argument("--file", help="Attach a document (userapi only); message text becomes the caption")
     parser.add_argument("--sender", choices=["user", "bot"], default="user", help="Sender identity. Default: userapi first-person")
     parser.add_argument("--parse-mode", choices=["none", "html", "md", "markdown", "markdownv2"], default="none")
+    parser.add_argument("--reply-to", type=int, help="Reply/topic root message id for forum topics")
     parser.add_argument("--timeout", type=int, default=60, help="Network timeout in seconds for actual sending")
     parser.add_argument("--dry-run", action="store_true", help="Resolve and print payload without sending")
     parser.add_argument("--yes", action="store_true", help="Required for actual sending")
@@ -268,6 +359,11 @@ def main() -> int:
         text = message_from_args(args).strip()
         if not text:
             raise RuntimeError("message text is empty")
+        if args.file:
+            if args.sender != "user":
+                raise RuntimeError("--file is supported only with --sender user")
+            if not Path(args.file).is_file():
+                raise RuntimeError(f"attachment not found: {args.file}")
         payload = {
             "status": "dry_run" if args.dry_run else "ready",
             "sender": args.sender,
@@ -278,6 +374,8 @@ def main() -> int:
                 "source": recipient.source,
             },
             "parse_mode": args.parse_mode,
+            "reply_to": args.reply_to,
+            "file": args.file,
             "text": text,
         }
         if args.dry_run:
@@ -288,14 +386,17 @@ def main() -> int:
         if args.sender == "user":
             try:
                 result = asyncio.run(
-                    asyncio.wait_for(send_user_api(recipient.destination, text, args.parse_mode), timeout=args.timeout)
+                    asyncio.wait_for(
+                        send_user_api(recipient.destination, text, args.parse_mode, reply_to=args.reply_to, file=args.file),
+                        timeout=args.timeout,
+                    )
                 )
             except TimeoutError as exc:
                 raise RuntimeError(f"userapi send timed out after {args.timeout}s") from exc
             except asyncio.TimeoutError as exc:
                 raise RuntimeError(f"userapi send timed out after {args.timeout}s") from exc
         else:
-            result = send_bot_api(recipient.destination, text, args.parse_mode, args.timeout)
+            result = send_bot_api(recipient.destination, text, args.parse_mode, args.timeout, reply_to=args.reply_to)
         payload.update({"status": "sent", "result": result})
         print(json.dumps(payload, ensure_ascii=False, indent=2) if args.json else _human(payload))
         return 0
@@ -315,6 +416,7 @@ def _human(payload: dict[str, Any]) -> str:
         f"sender: {payload['sender']}",
         f"to: {recipient['label']} -> {recipient['destination']} ({recipient['source']})",
         f"parse_mode: {payload['parse_mode']}",
+        f"reply_to: {payload.get('reply_to') or '-'}",
         "text:",
         payload["text"],
     ]

@@ -3,9 +3,9 @@ name: telegram-send
 description: >
   Send Telegram messages from Andrey's first-person Telegram userapi session, or
   explicitly from a bot. Use whenever the user asks to send, write, ping, DM,
-  reply in Telegram, forward to Telegram, "отправь", "напиши", or "пингани".
-  Always use the bundled script for actual Telegram writes.
-compatibility: Requires GIT workspace. Userapi needs Telethon plus TELEGRAM_API_ID, TELEGRAM_API_HASH, and TELEGRAM_USER_SESSION or TELEGRAM_USER_SESSION_FILE. Bot mode needs TELEGRAM_BOT_TOKEN.
+  reply in Telegram, forward to Telegram, "отправь", "напиши", or "пингани",
+  including requests that name a recipient in a Russian grammatical case.
+  Always use the bundled CLI for actual Telegram writes.
 ---
 
 # Telegram Send
@@ -62,9 +62,11 @@ ssh ai4u.kt.team 'cd /home/a.putin/GIT &&
 
 ## Recipient
 
-`--to` accepts phone, `@username`, numeric id, `peoples/*.md` names such as
-`Герман` or `german-putin`, and `telegram-chats/state.json` chat names. The
-script fails on ambiguous names.
+Extract the intended recipient from the user's natural-language request and pass
+only that name or identifier to `--to`. It accepts phone, `@username`, numeric
+id, names from `contacts.json` and `peoples/*.md`, including Russian case forms
+such as `Тимофееву`, and `assistants/telegram-chats/state.json` chat names. It
+fails safely when a name is absent or ambiguous.
 
 ## Rules
 

@@ -35,9 +35,10 @@ if [[ ! -d "$SKILLS_DIR" ]]; then
   exit 1
 fi
 
-install -d "$GIT_ROOT/.agents/skills" "$TARGET_HOME/.agents/skills"
+install -d "$GIT_ROOT/.agents/skills" "$TARGET_HOME/.agents/skills" "$TARGET_HOME/.codex/skills"
 rsync -a --delete "$SKILLS_DIR/telegram-send/" "$GIT_ROOT/.agents/skills/telegram-send/"
 rsync -a --delete "$SKILLS_DIR/telegram-send/" "$TARGET_HOME/.agents/skills/telegram-send/"
+rsync -a --delete "$SKILLS_DIR/telegram-send/" "$TARGET_HOME/.codex/skills/telegram-send/"
 
 for dir in "$GIT_ROOT/.codex/skills/telegram-send" "$GIT_ROOT/.claude/skills/telegram-send" "$GIT_ROOT/.github/skills/telegram-send" "$GIT_ROOT/.hermes/skills/telegram-send"; do
   install -d "$dir"
@@ -45,7 +46,6 @@ for dir in "$GIT_ROOT/.codex/skills/telegram-send" "$GIT_ROOT/.claude/skills/tel
 ---
 name: telegram-send
 description: Send Telegram messages through the canonical .agents telegram-send skill.
-compatibility: Read .agents/skills/telegram-send/SKILL.md.
 ---
 
 # Telegram Send
@@ -72,8 +72,9 @@ EOF
 if [[ -n "$OWNER" ]]; then
   chown -R "$OWNER" \
     "$GIT_ROOT/.agents" "$TARGET_HOME/.agents" \
+    "$TARGET_HOME/.codex/skills/telegram-send" \
     "$GIT_ROOT/.codex" "$GIT_ROOT/.claude" "$GIT_ROOT/.github" "$GIT_ROOT/.hermes" "$GIT_ROOT/.cursor" \
     2>/dev/null || true
 fi
 
-echo "Installed telegram-send skill into $GIT_ROOT and $TARGET_HOME"
+echo "Installed telegram-send skill into $GIT_ROOT, $TARGET_HOME/.agents, and $TARGET_HOME/.codex"
