@@ -96,6 +96,16 @@ folder_purpose() {
   ' "$path"
 }
 
+# Folder README prose is copied into root README. Rebase its relative Markdown
+# destinations so navigation continues to work from the new document layer.
+rebase_folder_links() {
+  local entry="$1"
+  local value="$2"
+  INDEX_ENTRY="$entry" perl -0pe \
+    's{\]\((?![A-Za-z][A-Za-z0-9+.-]*:|/|#)([^)]+)\)}{"](" . $ENV{INDEX_ENTRY} . "/$1)"}ge' \
+    <<< "$value"
+}
+
 ensure_root_files() {
   mkdir -p "$ROOT"
 
@@ -351,6 +361,7 @@ write_managed_block() {
         [[ -n "$title" ]] || title="$(basename "$entry")"
         purpose="${title}. Добавь в \`${entry}/README.md\` понятное описание, зачем эта папка."
       fi
+      purpose="$(rebase_folder_links "$entry" "$purpose")"
       printf '| `%s/` | %s |\n' \
         "$entry" \
         "$(safe_table_text "$purpose")"
