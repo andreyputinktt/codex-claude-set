@@ -50,9 +50,9 @@ description: Send Telegram messages through the canonical .agents telegram-send 
 
 # Telegram Send
 
-Read the canonical skill:
+Read the canonical skill, relative to the workspace root:
 
-${GIT_ROOT}/.agents/skills/telegram-send/SKILL.md
+.agents/skills/telegram-send/SKILL.md
 EOF
 done
 
@@ -64,9 +64,9 @@ globs:
 alwaysApply: false
 ---
 
-For Telegram outbound messages, read:
+For Telegram outbound messages, read, relative to the workspace root:
 
-${GIT_ROOT}/.agents/skills/telegram-send/SKILL.md
+.agents/skills/telegram-send/SKILL.md
 EOF
 
 if [[ -n "$OWNER" ]]; then
