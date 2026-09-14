@@ -154,6 +154,12 @@ are written by other people.
 
 ## Recipient
 
+For a reaction instead of a text message, use `--reaction '👍' --message-id ID`
+with `--sender user`, first `--dry-run`, then `--yes`. Do not combine reaction
+mode with message text, files or `--reply-to`. Reactions require a positive
+message ID and a private human user peer. Existing own reactions are preserved;
+the CLI does not replace them or add another acknowledgement. No text fallback.
+
 Extract the intended recipient from the user's natural-language request and pass
 only that name or identifier to `--to`. It accepts a phone, an `@username`, a
 numeric id, names from `contacts.json` and `peoples/*.md`, and chat names from

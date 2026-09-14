@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import asyncio
+import io
 import json
 import os
 import sys
@@ -8,7 +10,8 @@ import tempfile
 import unittest
 import urllib.parse
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock, patch
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "telegram_send.py"
@@ -206,3 +209,65 @@ class CachedPeerTests(unittest.TestCase):
         self.assertEqual(
             telegram_send.peer_cache_note("-1001234567890"), "group or channel id, no lookup needed"
         )
+
+
+class ReactionTests(unittest.TestCase):
+    def cli(self, args):
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(telegram_send,'_repo_root',return_value=Path(directory)), \
+             patch.object(telegram_send,'load_env'), \
+             patch.object(telegram_send,'peer_cache_note',return_value=''), \
+             patch.object(sys,'argv',['telegram_send','--to','@synthetic','--json',*args]), \
+             patch('sys.stdout',new_callable=io.StringIO) as out, \
+             patch('sys.stderr',new_callable=io.StringIO) as err:
+            result=telegram_send.main()
+            return result,json.loads(out.getvalue() or err.getvalue())
+
+    def test_reaction_dry_run_needs_no_text(self):
+        code,payload=self.cli(['--reaction','👍','--message-id','123','--dry-run'])
+        self.assertEqual(code,0)
+        self.assertEqual(payload['text'],'')
+        self.assertEqual(payload['reaction'],'👍')
+        self.assertEqual(payload['message_id'],123)
+
+    def test_reaction_rejects_bot_missing_target_and_mixed_text(self):
+        for args in (['--sender','bot','--message-id','123'],[],['--message-id','0'],
+                     ['--message-id','123','--message','padding'],['--message-id','123','--reply-to','12']):
+            with self.subTest(args=args):
+                code,_=self.cli(['--reaction','👍','--dry-run',*args])
+                self.assertEqual(code,1)
+        self.assertEqual(self.cli(['--message-id','123','--message','x','--dry-run'])[0],1)
+
+    def run_reaction(self, chosen=False, bot=False, missing=False):
+        from telethon.tl.types import User
+        client=AsyncMock()
+        client.__aenter__.return_value=client
+        client.is_user_authorized.return_value=True
+        client.get_entity.return_value=User(id=2000000001,bot=bot)
+        client.get_messages.return_value=None if missing else SimpleNamespace(reactions=SimpleNamespace(results=[SimpleNamespace(chosen_order=0)] if chosen else []))
+        with patch.dict(os.environ,{'TELEGRAM_API_ID':'123','TELEGRAM_API_HASH':'synthetic','TELEGRAM_USER_SESSION':''}), \
+             patch.object(telegram_send,'_user_session_file',return_value=Path('/synthetic/session.session')), \
+             patch('telethon.TelegramClient',return_value=client):
+            result=asyncio.run(telegram_send.send_user_api('2000000001',telegram_send.prepare_message('','plain',3900),'plain',access_hash='77',reaction='👍',message_id=123))
+        return result,client
+
+    def test_reaction_uses_exact_user_message_without_sending_text(self):
+        result,client=self.run_reaction()
+        request=client.call_args.args[0]
+        self.assertEqual(request.peer.id,2000000001)
+        self.assertEqual(request.msg_id,123)
+        self.assertEqual(request.reaction[0].emoticon,'👍')
+        self.assertFalse(result['already_reacted'])
+        client.send_message.assert_not_called()
+
+    def test_existing_owner_reaction_is_preserved(self):
+        result,client=self.run_reaction(chosen=True)
+        self.assertTrue(result['already_reacted'])
+        client.assert_not_called()
+        client.send_message.assert_not_called()
+
+    def test_reaction_fails_on_bot_or_missing_message(self):
+        with self.assertRaisesRegex(RuntimeError,'private human'):
+            self.run_reaction(bot=True)
+        with self.assertRaisesRegex(RuntimeError,'not found'):
+            self.run_reaction(missing=True)
