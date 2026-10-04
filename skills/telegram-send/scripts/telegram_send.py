@@ -16,7 +16,10 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_MAC_GIT_ROOT = Path("/Users/a.putinkt-team.de/Library/Mobile Documents/com~apple~CloudDocs/GIT")
+# Workspace root as the repo layout defines it (<root>/kt.team/skills/telegram-send/
+# scripts/telegram_send.py), never a personal path: the old default pointed at
+# one employee's iCloud folder and resolved to nothing on every other machine.
+DEFAULT_GIT_ROOT = Path(__file__).resolve().parents[4]
 
 
 @dataclass(frozen=True)
@@ -120,7 +123,7 @@ def _repo_root() -> Path:
             return path
     if (Path.home() / "GIT").exists():
         return Path.home() / "GIT"
-    return DEFAULT_MAC_GIT_ROOT
+    return DEFAULT_GIT_ROOT
 
 
 def _telegram_chats_root(root: Path) -> Path:
@@ -652,6 +655,19 @@ def peer_cache_note(destination: str) -> str:
     return "NOT in session cache - send will fail; use @username or --sender bot"
 
 
+def parse_schedule(value: str, now: datetime | None = None) -> datetime:
+    """--schedule: an ISO datetime with its zone, in the future (Telegram delivers it then, not now)."""
+    try:
+        when = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise RuntimeError(f"--schedule is not an ISO datetime: {value}") from exc
+    if when.tzinfo is None:
+        raise RuntimeError("--schedule needs a timezone, e.g. 2026-10-05T09:00:00+03:00")
+    if when <= (now or datetime.now(timezone.utc)):
+        raise RuntimeError("--schedule must be in the future")
+    return when
+
+
 async def send_user_api(
     destination: str,
     prepared: PreparedMessage,
@@ -659,8 +675,7 @@ async def send_user_api(
     reply_to: int | None = None,
     file: str | None = None,
     access_hash: str = "",
-    reaction: str | None = None,
-    message_id: int | None = None,
+    schedule: datetime | None = None,
 ) -> dict[str, Any]:
     try:
         from telethon import TelegramClient
@@ -692,19 +707,6 @@ async def send_user_api(
             entity = InputPeerUser(int(destination), int(access_hash))
         elif needs_cache_lookup(destination):
             entity = cached_peer(client.session, destination, PeerChannel, PeerChat)
-        if reaction is not None:
-            from telethon.tl.functions.messages import SendReactionRequest
-            from telethon.tl.types import ReactionEmoji, User
-            resolved = await client.get_entity(entity)
-            if not isinstance(resolved, User) or resolved.bot or resolved.deleted:
-                raise RuntimeError("reactions require a private human user peer")
-            target = await client.get_messages(resolved, ids=message_id)
-            if not target:
-                raise RuntimeError("reaction target message not found")
-            chosen = any(getattr(r, "chosen_order", None) is not None for r in getattr(getattr(target, "reactions", None), "results", []) or [])
-            if not chosen:
-                await client(SendReactionRequest(peer=resolved, msg_id=message_id, reaction=[ReactionEmoji(emoticon=reaction)], big=False, add_to_recent=False))
-            return {"provider":"telegram_user_api","destination":destination,"telegram_message_id":message_id,"operation":"reaction","emoji":reaction,"already_reacted":chosen}
         if reply_to is not None and re.fullmatch(r"-?\d+", destination):
             marked_id = int(destination)
             if marked_id < -1000000000000:
@@ -716,6 +718,7 @@ async def send_user_api(
             kwargs: dict[str, Any] = {
                 "caption": prepared.text,
                 "reply_to": reply_to,
+                "schedule": schedule,
             }
             if message_format == "telegram":
                 kwargs["formatting_entities"] = _telethon_entities(prepared.entities)
@@ -724,14 +727,18 @@ async def send_user_api(
                 kwargs["parse_mode"] = _user_parse_mode(message_format)
             message = await client.send_file(entity, file, **kwargs)
         else:
-            kwargs = {"reply_to": reply_to}
+            kwargs = {"reply_to": reply_to, "schedule": schedule}
             if message_format == "telegram":
                 kwargs["formatting_entities"] = _telethon_entities(prepared.entities)
                 kwargs["parse_mode"] = None
             else:
                 kwargs["parse_mode"] = _user_parse_mode(message_format)
             message = await client.send_message(entity, prepared.text, **kwargs)
-    return {"provider": "telegram_user_api", "destination": destination, "telegram_message_id": int(message.id)}
+    result = {"provider": "telegram_user_api", "destination": destination, "telegram_message_id": int(message.id)}
+    if schedule is not None:
+        # The id is in the chat's scheduled list, not its history; Telegram posts the message at `scheduled_for`.
+        result["scheduled_for"] = schedule.isoformat()
+    return result
 
 
 def send_bot_api(
@@ -782,8 +789,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--message-file", help="UTF-8 file with message text")
     parser.add_argument("--stdin", action="store_true", help="Read message text from stdin")
     parser.add_argument("--file", help="Attach a document (userapi only); message text becomes the caption")
-    parser.add_argument("--reaction", choices=["👍", "👌"], help="Acknowledge a message with a user-account reaction instead of text")
-    parser.add_argument("--message-id", type=int, help="Exact message ID for --reaction")
     parser.add_argument("--sender", choices=["user", "bot"], default="user", help="Sender identity. Default: userapi first-person")
     parser.add_argument(
         "--format",
@@ -801,6 +806,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="",
         help="MTProto access_hash for an explicit numeric user id",
     )
+    parser.add_argument("--schedule", help="Deliver later as a Telegram scheduled message: ISO datetime with zone (userapi only)")
     parser.add_argument("--timeout", type=int, default=60, help="Network timeout in seconds for actual sending")
     parser.add_argument("--dry-run", action="store_true", help="Resolve and print payload without sending")
     parser.add_argument("--yes", action="store_true", help="Required for actual sending")
@@ -814,15 +820,8 @@ def main() -> int:
     load_env(root)
     try:
         recipient = resolve_recipient(root, args.to)
-        if args.reaction is not None:
-            if args.sender != 'user' or not args.message_id or args.message_id <= 0:
-                raise RuntimeError('reaction requires --sender user and a positive --message-id')
-            if any([args.message is not None,args.message_file,args.stdin,args.file,args.reply_to is not None]):
-                raise RuntimeError('reaction cannot be combined with text, files or --reply-to')
-        elif args.message_id is not None:
-            raise RuntimeError('--message-id requires --reaction')
-        text = '' if args.reaction is not None else message_from_args(args).strip()
-        if not text and args.reaction is None:
+        text = message_from_args(args).strip()
+        if not text:
             raise RuntimeError("message text is empty")
         message_format = resolve_message_format(args.format, args.parse_mode)
         if args.file:
@@ -830,6 +829,9 @@ def main() -> int:
                 raise RuntimeError("--file is supported only with --sender user")
             if not Path(args.file).is_file():
                 raise RuntimeError(f"attachment not found: {args.file}")
+        schedule = parse_schedule(args.schedule) if args.schedule else None
+        if schedule is not None and args.sender != "user":
+            raise RuntimeError("--schedule is supported only with --sender user")
         prepared = prepare_message(text, message_format, 1024 if args.file else 3900)
         payload = {
             "status": "dry_run" if args.dry_run else "ready",
@@ -842,8 +844,7 @@ def main() -> int:
             },
             "format": message_format,
             "reply_to": args.reply_to,
-            "reaction": args.reaction,
-            "message_id": args.message_id,
+            "schedule": schedule.isoformat() if schedule else None,
             "access_hash_supplied": bool(args.access_hash),
             "peer": peer_cache_note(recipient.destination) if args.sender == "user" and not args.access_hash else "",
             "file": args.file,
@@ -868,8 +869,7 @@ def main() -> int:
                             reply_to=args.reply_to,
                             file=args.file,
                             access_hash=args.access_hash,
-                            reaction=args.reaction,
-                            message_id=args.message_id,
+                            schedule=schedule,
                         ),
                         timeout=args.timeout,
                     )
@@ -907,7 +907,7 @@ def _human(payload: dict[str, Any]) -> str:
         f"format: {payload['format']}",
         f"entities: {len(payload.get('entities') or [])}",
         f"reply_to: {payload.get('reply_to') or '-'}",
-        *([f"reaction: {payload['reaction']} on message {payload['message_id']}"] if payload.get('reaction') else []),
+        *( [f"schedule: {payload['schedule']}"] if payload.get("schedule") else [] ),
         *( [f"peer: {payload['peer']}"] if payload.get("peer") else [] ),
         "text:",
         payload["text"],
